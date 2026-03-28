@@ -32,5 +32,3 @@ We will encode these games using **PyGame GUI**.
 
 ***We will do it***
 
-
-
