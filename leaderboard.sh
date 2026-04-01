@@ -215,5 +215,4 @@ done < 3.csv
 echo "+${sep1}+${sep2}+${sep2}+${sep2}+"
 echo "*********************************END*********************************"
 
-
 rm connect4.csv othello.csv tictactoe.csv 1.csv 2.csv 3.csv 
