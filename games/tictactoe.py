@@ -1,70 +1,59 @@
+import numpy as np
 import pygame
+from game import BoardGame
 
-def run_game(screen):
+W, H = 700, 800 
+TOP_BAR_H  = 80
+MARGIN     = 20
 
-    board = [["" for _ in range(5)] for _ in range(5)]
+BOARD_X = MARGIN
+BOARD_Y = TOP_BAR_H + MARGIN
+BOARD_W = W - 2 * MARGIN          # 660
+BOARD_H = H - TOP_BAR_H - 2 * MARGIN  # 680
 
-    WIDTH, HEIGHT = screen.get_size()
+BOARD_SIZE = 10
+WIN_LENGTH  = 5
+CELL_SIZE = BOARD_W // BOARD_SIZE
 
-   
-    BG_COLOR   = (15, 15, 25)
-    LINE_COLOR = (80, 80, 120)
-    X_COLOR    = (220, 80, 80)
-    O_COLOR    = (80, 180, 220)
-    TEXT_COLOR = (200, 200, 220)
-    BTN_COLOR  = (40, 40, 60)
-    BTN_HOVER  = (60, 60, 90)
 
-    
-    GRID_SIZE   = min(WIDTH, HEIGHT) * 0.7
-    CELL_SIZE   = GRID_SIZE // 5
-    OFFSET_X    = (WIDTH  - GRID_SIZE) // 2
-    OFFSET_Y    = (HEIGHT - GRID_SIZE) // 2 - 30
-    LINE_WIDTH  = 4
-    PIECE_WIDTH = 5
+class TicTacToe(BoardGame):
 
-    font_big   = pygame.font.SysFont("Consolas", 42, bold=True)
-    font_small = pygame.font.SysFont("Consolas", 24)
+    def __init__(self, player1, player2):
+        super.__init__(player1, player2)
 
-   
-    screen.fill(BG_COLOR)
+    def get_valid_moves(self) -> list:
+        pass
 
-    
-    for i in range(1, 5):
-        x = int(OFFSET_X + i * CELL_SIZE)
-        pygame.draw.line(screen, LINE_COLOR,
-                         (x, int(OFFSET_Y)),
-                         (x, int(OFFSET_Y + GRID_SIZE)), LINE_WIDTH)
-        y = int(OFFSET_Y + i * CELL_SIZE)
-        pygame.draw.line(screen, LINE_COLOR,
-                         (int(OFFSET_X), y),
-                         (int(OFFSET_X + GRID_SIZE), y), LINE_WIDTH)
+    def make_move(self, move) -> bool:
+        pass
 
-    
-    for row in range(5):
-        for col in range(5):
-            cx = int(OFFSET_X + col * CELL_SIZE + CELL_SIZE // 2)
-            cy = int(OFFSET_Y + row * CELL_SIZE + CELL_SIZE // 2)
-            r  = int(CELL_SIZE * 0.3)
+    def check_winner(self):
+        pass
 
-            if board[row][col] == "X":
-                pygame.draw.line(screen, X_COLOR,
-                                 (cx - r, cy - r), (cx + r, cy + r), PIECE_WIDTH)
-                pygame.draw.line(screen, X_COLOR,
-                                 (cx + r, cy - r), (cx - r, cy + r), PIECE_WIDTH)
-            elif board[row][col] == "O":
-                pygame.draw.circle(screen, O_COLOR, (cx, cy), r, PIECE_WIDTH)
+    def draw_board(self, surf: pygame.Surface):
+        pass
 
-    txt = font_big.render("Player X's turn", True, TEXT_COLOR)
-    screen.blit(txt, (WIDTH // 2 - txt.get_width() // 2, int(OFFSET_Y - 60)))
+    def draw_top_bar(self, surf):
+        pygame.draw.rect(surf, ( 18,  18,  35), (0, 0, W, TOP_BAR_H))
+        game_text = self.get_font(30, True).render(self.__class__.__name__, True, (120, 120, 150))
+        surf.blit(game_text, (20,20))
 
-   
-    btn_rect = pygame.Rect(WIDTH // 2 - 80, int(OFFSET_Y + GRID_SIZE + 20), 160, 44)
-    mouse    = pygame.mouse.get_pos()
-    color    = BTN_HOVER if btn_rect.collidepoint(mouse) else BTN_COLOR
-    pygame.draw.rect(screen, color, btn_rect, border_radius=8)
-    btn_txt = font_small.render("Restart", True, TEXT_COLOR)
-    screen.blit(btn_txt, (btn_rect.centerx - btn_txt.get_width() // 2,
-                           btn_rect.centery - btn_txt.get_height() // 2))
+        p1_text = self.get_font(30).render(self.player_names[0], True, (255,  90,  90))
+        p2_text = self.get_font(30).render(self.player_names[1], True, ( 90, 180, 255))
+        vs_text = self.get_font(30).render(" VS ", True, (120, 120, 150))
 
-    pygame.display.flip()
+        x = W / 2 - (p1_text.get_width() + p2_text.get_width() + vs_text.get_width()) / 2
+
+        surf.blit(p1_text, (x, 20)); x += p1_text.get_width();
+        surf.blit(vs_text, (x, 20)); x += vs_text.get_width();
+        surf.blit(p2_text, (x, 20))
+
+        turn_color = (255,  90,  90) if self.current_player == 1 else ( 90, 180, 255)
+        turn_text = self.get_font(30).render(self.current_player_name(), True, turn_color)
+        surf.blit(turn_text, (W - turn_text.get_width() - 10, 20))
+
+        pygame.draw.line (surf, ( 45,  45,  75), (0,TOP_BAR_H), (W, TOP_BAR_H))
+
+    def handle_click(self, pos: tuple):
+        pass
+        
