@@ -7,8 +7,8 @@ W, H = 700, 800
 TOP_BAR_H  = 80
 MARGIN     = 20
 
-BOARD_X = MARGIN
-BOARD_Y = TOP_BAR_H + MARGIN
+BOARD_X = MARGIN                #Top-left x-coordinate of board
+BOARD_Y = TOP_BAR_H + MARGIN    #Top-left y-coordinate of board
 BOARD_W = W - 2 * MARGIN          # 660
 BOARD_H = H - TOP_BAR_H - 2 * MARGIN  # 680
 
@@ -19,14 +19,14 @@ CELL_SIZE = BOARD_W // BOARD_SIZE
 
 class TicTacToe(BoardGame):
 
-    def reset(self):
+    def reset(self):        #Resets board
         self.board          = np.zeros((BOARD_SIZE, BOARD_SIZE), dtype=int)
         self.current_player = 1
         self.winner         = None
         self.move_count     = 0
         self.winner_line = None
 
-    def get_cell(self, x, y):
+    def get_cell(self, x, y):   #Returns cells row and column number if mouse is inside board
         c = (x - BOARD_X) // CELL_SIZE
         r = (y - BOARD_Y) // CELL_SIZE
 
@@ -34,7 +34,7 @@ class TicTacToe(BoardGame):
             return ((r, c))   
         else: return ((-1, -1))
 
-    def check_win(self):
+    def check_win(self):       #Stores winning line cell and theta
         rows = np.arange(BOARD_SIZE)[:,None,None]                 # (n,1,1)
         start_cols = np.arange(BOARD_SIZE-WIN_LENGTH+1)[None,:,None]  # (1,n-5+1,1)
         offsets = np.arange(WIN_LENGTH)[None,None,:]     # (1,1,5)
@@ -98,6 +98,8 @@ class TicTacToe(BoardGame):
 
 
 # ===========================================================================
+# Drawing
+# ===========================================================================
     def draw_board(self, surf: pygame.Surface):
         pygame.draw.rect(surf, "yellow", (BOARD_X, BOARD_Y, CELL_SIZE*BOARD_SIZE, CELL_SIZE*BOARD_SIZE))
 
@@ -143,7 +145,7 @@ class TicTacToe(BoardGame):
    
         pygame.draw.line (surf, ( 45,  45,  75), (0,TOP_BAR_H), (W, TOP_BAR_H))
 
-    def fill_board(self, surf):
+    def fill_board(self, surf):  #Draws Players X/O
         centre=(CELL_SIZE//2, CELL_SIZE//2)
         for r,c in np.argwhere(self.board == 1) :
             cx = BOARD_X + c * CELL_SIZE + CELL_SIZE // 2
@@ -158,7 +160,7 @@ class TicTacToe(BoardGame):
             cy = BOARD_Y + r * CELL_SIZE + CELL_SIZE // 2
             pygame.draw.circle(surf, ( 60, 255, 255), (cx, cy), CELL_SIZE/2*0.9, 5)
 
-    def draw_hovered_cell(self, surf:pygame.Surface):
+    def draw_hovered_cell(self, surf:pygame.Surface):   #Hover effect if cell is not filled
         x, y = pygame.mouse.get_pos()
         c = (x - BOARD_X) // CELL_SIZE
         r = (y - BOARD_Y) // CELL_SIZE
@@ -166,7 +168,7 @@ class TicTacToe(BoardGame):
         if 0 <= r <BOARD_SIZE and 0 <= c < BOARD_SIZE and self.board[r,c] == 0:
             pygame.draw.rect(surf, (201, 197, 20), (BOARD_X + c*CELL_SIZE, BOARD_Y + r*CELL_SIZE, CELL_SIZE, CELL_SIZE))
 
-    def draw_line(self, screen, x, y, theta):
+    def draw_line(self, screen, x, y, theta):       #Draw winning line according to theta
         cx = BOARD_X + CELL_SIZE*x + CELL_SIZE//2
         cy = BOARD_Y + CELL_SIZE*y + CELL_SIZE//2
         length = (WIN_LENGTH - 1)*CELL_SIZE
@@ -200,6 +202,9 @@ class TicTacToe(BoardGame):
             self.move_count += 1
             self.check_win()
             self.switch_turn()
+
+# ===========================================================================
+# Main Game loop
 # ===========================================================================
     def run_game(self,screen):
         running = True
@@ -216,11 +221,11 @@ class TicTacToe(BoardGame):
                 self.draw_board(screen)
 
                 if self.winner == 1 or self.winner == 2:
-                    self.draw_line(screen, *self.winner_line)
+                    self.draw_line(screen, *self.winner_line) #Draws winning line
 
                 if (self.winner != None):
                     pygame.display.update()
-                    pygame.time.wait(1000)
+                    pygame.time.wait(1000)      #Pauses for 1 sec after showing winning line 
                     if(self.winner == 0):
                         return None, None
                     else :

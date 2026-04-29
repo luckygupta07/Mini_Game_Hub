@@ -14,20 +14,20 @@ WIN_LENGTH  = 4
 CELL_SIZE =  88
 BOARD_W = CELL_SIZE * BOARD_SIZE   # 616
 
-BOARD_X = MARGIN
-BOARD_Y = TOP_BAR_H + CELL_SIZE 
+BOARD_X = MARGIN                #Top-left x-coordinate of board
+BOARD_Y = TOP_BAR_H + CELL_SIZE #Top-left y-coordinate of board
 BOARD_H = BOARD_W  # 616
 
 
 class ConnectFour(BoardGame):
 
-    def reset(self):
+    def reset(self):            #Resets board
         self.board          = np.zeros((BOARD_SIZE, BOARD_SIZE), dtype=int)
         self.current_player = 1
         self.winner         = None
         self.move_count     = 0
     
-    def get_cell(self, x, y):
+    def get_cell(self, x, y):       #Returns cells row and column number if mouse is inside board
         c = (x - BOARD_X) // CELL_SIZE
         r = (y - BOARD_Y) // CELL_SIZE
 
@@ -35,7 +35,7 @@ class ConnectFour(BoardGame):
             return ((r, c))   
         else: return ((-1, -1))
 
-    def check_win(self):
+    def check_win(self):        #Stores winning line cell and theta
         rows = np.arange(BOARD_SIZE)[:,None,None]                 # (n,1,1)
         start_cols = np.arange(BOARD_SIZE-WIN_LENGTH+1)[None,:,None]  # (1,n-5+1,1)
         offsets = np.arange(WIN_LENGTH)[None,None,:]     # (1,1,5)
@@ -99,7 +99,8 @@ class ConnectFour(BoardGame):
 
         
 # ===========================================================================
-    # Draw
+# Drawing
+# ===========================================================================
 
     def draw_board(self, surf: pygame.Surface):
         """Render full frame. Call self.draw_top_bar(surf) here."""
@@ -121,7 +122,7 @@ class ConnectFour(BoardGame):
         self.fill_board(surf)
         self.draw_top_bar(surf)
     
-    def draw_hovered_column(self, surf:pygame.Surface):
+    def draw_hovered_column(self, surf:pygame.Surface):     #Hover effect if the column at which mouse is present and is not full
         x, y = pygame.mouse.get_pos()
         c = (x - BOARD_X) // CELL_SIZE
         r = (y - BOARD_Y) // CELL_SIZE
@@ -129,7 +130,7 @@ class ConnectFour(BoardGame):
         if -1 <= r <BOARD_SIZE and 0 <= c < BOARD_SIZE and self.board[0,c] == 0:
             pygame.draw.rect(surf, (16, 83, 156), (BOARD_X + c*CELL_SIZE, BOARD_Y, CELL_SIZE, BOARD_H))
 
-    def draw_floating_ball(self, surf:pygame.Surface):
+    def draw_floating_ball(self, surf:pygame.Surface):     #Draws floating ball on top of the column which is hoverd and not full
         x, y = pygame.mouse.get_pos()
         c = (x - BOARD_X) // CELL_SIZE
         r = (y - BOARD_Y) // CELL_SIZE
@@ -172,7 +173,7 @@ class ConnectFour(BoardGame):
 
             pygame.draw.line (surf, ( 45, 45, 75), (0, 80), (W, 80))
 
-    def fill_board(self, surf):
+    def fill_board(self, surf):     #Draw each players balls
         centre=(CELL_SIZE//2, CELL_SIZE//2)
         for r,c in zip(*np.where(self.board==1)):
             cx = BOARD_X + c * CELL_SIZE + CELL_SIZE // 2
@@ -184,7 +185,7 @@ class ConnectFour(BoardGame):
             cy = BOARD_Y + r * CELL_SIZE + CELL_SIZE // 2
             pygame.draw.circle(surf, ( 60, 255, 255), (cx, cy), CELL_SIZE/2*0.9)
 
-    def draw_line(self, screen, x, y, theta):
+    def draw_line(self, screen, x, y, theta):   #Draw winning line and marks the balls inside it as well
         cx = BOARD_X + CELL_SIZE*x + CELL_SIZE//2
         cy = BOARD_Y + CELL_SIZE*y + CELL_SIZE//2
         length = (WIN_LENGTH - 1)*CELL_SIZE
@@ -221,7 +222,8 @@ class ConnectFour(BoardGame):
 
 
 # ===========================================================================
-    #Mouse
+# Mouse
+# ===========================================================================
     def handle_click(self, pos: tuple, surf:pygame.Surface):
         x, y = pos
         r, c = self.get_cell(x, y)
@@ -230,7 +232,7 @@ class ConnectFour(BoardGame):
 
         clock     = pygame.time.Clock()
 
-        for i in range(BOARD_SIZE):
+        for i in range(BOARD_SIZE):     #Loop to show falling animation
 
             if self.board[i, c] !=0 :
                 break
@@ -244,7 +246,7 @@ class ConnectFour(BoardGame):
             pygame.draw.circle(surf, (60,255,255) if self.current_player == 2 else "red", (cx, cy), CELL_SIZE//2*0.9)
 
             pygame.display.update()
-            clock.tick(15) 
+            clock.tick(20) 
 
         for i in range(BOARD_SIZE-1, -1, -1):
             if self.board[i, c] == 0:
@@ -254,6 +256,8 @@ class ConnectFour(BoardGame):
                 self.switch_turn()
                 break
 
+# ===========================================================================
+# Main Game loop
 # ===========================================================================
     def run_game(self,screen):
         running = True

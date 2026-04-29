@@ -27,17 +27,11 @@ LEADERBOARD_SH  = os.path.join(BASE_DIR, "leaderboard.sh")
 
 
 # ---------------------------------------------------------------------------
-
 # Visual constants
 # ---------------------------------------------------------------------------
 
 # window size
 W, H = 700, 800          
-
-# Colours 
-C = {
-    
-}
 
 # ---------------------------------------------------------------------------
 # Appends game result to history.csv
@@ -46,18 +40,27 @@ def record_result(winner_name: str, loser_name: str, game_name: str):
     with open(HISTORY_CSV, "a", newline="") as f:
         writer = csv.writer(f)
         writer.writerow([winner_name, loser_name, date.today().isoformat(), game_name])
+
 # ---------------------------------------------------------------------------
+# Shows leaderboard in terminal
 def show_leaderboard(sort_by):
     #sort_by can be 'wins', 'losses', or 'ratio'.
     subprocess.run(["bash", LEADERBOARD_SH, sort_by])
 
 
-#--gamefrequency updating------------------------------------------------------
+#----------------------------------------------------------------------------
+# Updating game_frequency
+#----------------------------------------------------------------------------
 def update_game_frequency(game_name: str):
     with open("games_frequency.csv", "r") as f:
         values = f.readline().strip("\n").split(",")
-    
-    n1, n2, n3 = int(values[0]), int(values[1]), int(values[2])
+
+    if(values[0]==""): #if the line is empty (no games played yet)
+        n1,n2,n3=0,0,0
+    else:    
+        n1, n2, n3 = int(values[0]), int(values[1]), int(values[2])
+
+    #n1,n2,n3 stores games_frequency of ConnectFour,Othello,Tic-Tac-Toe
 
     if game_name == "ConnectFour":
         n1 += 1
@@ -74,31 +77,56 @@ def update_game_frequency(game_name: str):
 #showing statitics
 #----------------------------------------------------------------------------
 def show_statitics(screen:pygame.Surface):
-    top_5_users=[]
-    users_wins=[]
-    users_loses=[]
-    with open('count_of_games.csv','r') as f:
-        for i in range(0,5):
-            k=f.readline().strip("\n").split(",")
+    top_5_users=[] #stores names of top 5 players
+    users_wins=[] #stores total no of wins by top 5 players respectively
+    users_loses=[] #stores total no of loses by top 5 players respectively
+    with open('count_of_games.csv', 'r') as f:
+        count = 0
+
+        while count < 5:
+            l = f.readline()
+            # ----end of file-----
+            if not l:    
+                top_5_users.append("No more user")
+                users_wins.append(0)
+                users_loses.append(0)
+                count += 1
+                continue
+
+            l = l.strip()
+
+            # ------for blank line-------
+            if l == "":   
+                top_5_users.append("No more user")
+                users_wins.append(0)
+                users_loses.append(0)
+                count += 1   
+                continue
+            
+            #---normal line--------
+            k = l.split(",")
             top_5_users.append(k[0])
             users_wins.append(int(k[1]))
             users_loses.append(int(k[5]))
-    x=np.arange(len(top_5_users))
+            count += 1
+            
+    x=np.arange(len(top_5_users)) #array used for positioning bars
+
     #-------creating a required layout--------------------
     fig=plt.figure(figsize=(W/100,H/100),dpi=100)
     gs=fig.add_gridspec(2,2,height_ratios=[1,1])
 
-    bar=fig.add_subplot(gs[0,:])
-    pie1=fig.add_subplot(gs[1,0])
-    pie2=fig.add_subplot(gs[1,1])
+    bar=fig.add_subplot(gs[0,:])   #gives axes for 1st row two columns combinely
+    pie1=fig.add_subplot(gs[1,0])  #gives axes for 2nd row first column
+    pie2=fig.add_subplot(gs[1,1])  #gives axes for 2nd row second column
     
     #---------drawing bar graph----------------------------
     
-    b1=bar.bar(x,users_wins,0.3,label="Total no of wins",color="blue")
+    b1=bar.bar(x,users_wins,0.3,label="Total no of wins",color="blue")            #drawing wins bars
     bar.bar_label(b1,users_wins,padding=0.10)
-    b2=bar.bar(x + 0.3,users_loses,0.3,label="Total no of loses",color="red")
+    b2=bar.bar(x + 0.3,users_loses,0.3,label="Total no of loses",color="red")     #drawing loses bars
     bar.bar_label(b2,users_loses,padding=0.10)
-    bar.set_xticks(x+0.15,top_5_users)
+    bar.set_xticks(x+0.15,top_5_users)                                            #xaxis nodes labels
     bar.set_xlabel("Top 5 players")
     bar.set_ylabel("Frequency")
     bar.set_title("total no of games won by top 5 players")
@@ -114,17 +142,17 @@ def show_statitics(screen:pygame.Surface):
     pie1.pie(frequency,labels=None,autopct='%1.1f%%',startangle=30)
     pie1.legend(labels=labels)
     pie1.set_title("GAME POPULARITY")
-    pie1.set_frame_on(True)
+    pie1.set_frame_on(True)     #adds squarebox for piechart 2
 
     #Piechart 2-----------------------------
     with open('count_of_games.csv','r') as f:
-        wins=f.readline().strip("\n").split(",")[2:5]
+        wins=f.readline().strip("\n").split(",")[2:5] #reads wins of respective games of topmost player
     pie2.pie(wins,labels=None,autopct='%1.1f%%',startangle=30)
     pie2.legend(labels=labels)
     pie2.set_title("wins contribution for top player")
-    pie2.set_frame_on(True)
+    pie2.set_frame_on(True)     #adds squarebox for piechart 2
 
-    plt.tight_layout()
+    plt.tight_layout()                              
     
     plt.savefig('images/statistics.png', dpi=100, pad_inches=0)
     plt.close()
@@ -152,7 +180,6 @@ def show_statitics(screen:pygame.Surface):
                     a=False
     os.remove('count_of_games.csv')
 
-
 # ---------------------------------------------------------------------------
 #Base class for 2-player turn-based board games
 # ---------------------------------------------------------------------------
@@ -163,10 +190,10 @@ class BoardGame:
     TOP_BAR_H  = 80
     MARGIN     = 20
 
-    BOARD_X = MARGIN
-    BOARD_Y = TOP_BAR_H + MARGIN
-    BOARD_W = W - 2 * MARGIN          # 660
-    BOARD_H = H - TOP_BAR_H - 2 * MARGIN  # 680
+    BOARD_X = MARGIN                      #Top-left x-coordinate of board
+    BOARD_Y = TOP_BAR_H + MARGIN          #Top-left y-coordinate of board
+    BOARD_W = W - 2 * MARGIN              #Width of board = 660
+    BOARD_H = H - TOP_BAR_H - 2 * MARGIN  #Height of board = 680
 
     def __init__(self, player1: str, player2: str):
         self.player_names   = {1: player1, 2: player2}
@@ -193,7 +220,7 @@ class BoardGame:
             return "It's a draw!"
         return f"{self.player_names[self.winner]} wins!"
 
-    def get_font(self, size: int, bold: bool=False) -> pygame.font.Font:  ####
+    def get_font(self, size: int, bold: bool=False) -> pygame.font.Font:  #Returns segoeui font 
         return pygame.font.SysFont("segoeui", size, bold)
 
 
@@ -216,14 +243,14 @@ class MenuScreen:
         self.p2     = p2
 
         self.row_h    = 100
-        self.row_left  = 80
+        self.row_left  = 80         #Top x-coordinate of each option box
         self.row_w    = W - 160
         first_row_y   = 320
-        self.row_tops = [first_row_y + i * (self.row_h + 16) for i in range(len(self.GAMES))]
+        self.row_tops = [first_row_y + i * (self.row_h + 16) for i in range(len(self.GAMES))]   #Top y-coordinate of each option box
 
         
         #Images 
-        self.bg_image = pygame.image.load("images/menu.png")   # replace with your file path
+        self.bg_image = pygame.image.load("images/menu.png")   
         self.bg_image = pygame.transform.scale(self.bg_image, (W, H))
 
         self.c4_image = pygame.image.load("images/c4.png")
@@ -251,23 +278,23 @@ class MenuScreen:
                     idx = self.row_num(mx, my)
                     if idx >= 0:
                         return self.GAMES[idx]
-            self.draw_something(mx, my)
+            self.draw_menu(mx, my)
             pygame.display.flip()
             clock.tick(60)
 
-    def row_rect(self, idx: int) -> pygame.Rect:
+    def row_rect(self, idx: int) -> pygame.Rect:  #Returns pygame.Rect for each game options
         return pygame.Rect(self.row_left, self.row_tops[idx], self.row_w, self.row_h)
 
-    def row_num(self, mx: int, my: int) -> int:
+    def row_num(self, mx: int, my: int) -> int:   #Returns index of game option using mouse position
         for i in range(len(self.GAMES)):
             if self.row_rect(i).collidepoint(mx, my):
                 return i
         return -1
     
-    def get_font(self, size: int, bold: bool = False) -> pygame.font.Font:  ####
+    def get_font(self, size: int, bold: bool = False) -> pygame.font.Font:  #Returns segoeui font
         return pygame.font.SysFont("segoeui", size, bold)
 
-    def draw_something(self, mx: int, my: int):
+    def draw_menu(self, mx: int, my: int):
         surf = self.screen
         
         surf.blit(self.bg_image, (0, 0))
@@ -276,7 +303,7 @@ class MenuScreen:
         vs = self.get_font(50).render("  vs  ", True, (110, 110, 140))
         p2s = self.get_font(50).render(self.p2, True, (90, 180, 255))
         total = p1s.get_width() + vs.get_width() + p2s.get_width()
-        x = W//2 - total // 2
+        x = W//2 - total // 2       #Mid point of middle P1 vs P2 string
         y = 160
         surf.blit(p1s, (x, y)); x += p1s.get_width()
         surf.blit(vs, (x, y)); x += vs.get_width()
@@ -292,11 +319,11 @@ class MenuScreen:
         hov = self.row_num(mx, my)
         for i, name in enumerate(self.GAMES):
             r      = self.row_rect(i)
-            is_hov = (i == hov)
-            bg_col = (28, 28, 50) if is_hov else (16, 16, 30)
+            is_hov = (i == hov)                                 #True is i th option hovered
+            bg_col = (28, 28, 50) if is_hov else (16, 16, 30)   #Sets different color if hovered
             pygame.draw.rect(surf, bg_col, r, border_radius=8)
             if is_hov:
-                pygame.draw.rect(surf, (80, 180, 255),
+                pygame.draw.rect(surf, (80, 180, 255),                 #Draws little blue rectangle when hovered
                                  (r.x, r.y + 10, 3, r.height - 20),
                                  border_radius=2)
             name_col = (220, 220, 235) if is_hov else (160, 160, 185)
@@ -305,6 +332,7 @@ class MenuScreen:
             surf.blit(self.get_font(15).render(self.DESCRIPTIONS[name], True, (90, 90, 120)),
                       (r.x + 20 + self.row_h, r.y + 50))
             
+            #Add game icons
             if i == 0:
                 surf.blit(self.tic_image, (self.row_left, self.row_tops[i]))
 
@@ -313,7 +341,8 @@ class MenuScreen:
 
             elif i == 2:
                 surf.blit(self.c4_image, (self.row_left, self.row_tops[i]))
-                
+
+            #Draws divider between options    
             if i < len(self.GAMES) - 1:
                 sep_y = r.bottom + 7
                 pygame.draw.line(surf, (28, 28, 48),
@@ -338,7 +367,7 @@ class Postgame:
         self.loser = loser
         self.game_name = game_name
 
-        self.phase = "sort"
+        self.phase = "sort"    #Stores post game phase
         #Variables for sort option buttons
         self.btn_w, self.btn_h = 200, 46
         self.gap = 20
@@ -385,13 +414,13 @@ class Postgame:
 
 
 
-    def sort_options_rect(self, idx):
+    def sort_options_rect(self, idx):       #returns pygame.Rect for i th option
         return pygame.Rect(self.btn_x[idx], self.btn_y, self.btn_w, self.btn_h)
     
-    def play_again_rect(self):
+    def play_again_rect(self):              #returns pygame.Rect for play again option
         return pygame.Rect(W // 2 - 215, H // 2 + 60, 190, 50)
      
-    def quit_rect(self):
+    def quit_rect(self):                    #returns pygame.Rect for quit option
         return pygame.Rect(W // 2 + 25, H // 2 + 60, 190, 50)
 
     def handle_sort_click(self, mx, my):
@@ -409,7 +438,7 @@ class Postgame:
         show_leaderboard(self.SORT_OPTIONS[idx])
         self.phase = "statistics"
 
-    def handle_again(self, mx, my):
+    def handle_again(self, mx, my):         #Returns true is pressed play again
         if self.play_again_rect().collidepoint(mx, my):
             return "Yes"
         elif self.quit_rect().collidepoint(mx, my):
@@ -417,7 +446,7 @@ class Postgame:
         else :
             return None
         
-    def get_font(self, size: int, bold: bool = False) -> pygame.font.Font:  ####
+    def get_font(self, size: int, bold: bool = False) -> pygame.font.Font:  #Return segoeui font
         return pygame.font.SysFont("segoeui", size, bold=bold)
 
 
@@ -483,7 +512,7 @@ class Postgame:
             surf.blit(btn_label, btn_label.get_rect(center = (rect.centerx, rect.centery)))
                 
         
-
+# ------------------------------------------------------------------
 def load_game_class(game_name: str):
     """Dynamically import and return the game class for the selected game.
         Prevents circular import error.
@@ -494,7 +523,7 @@ def load_game_class(game_name: str):
     return getattr(module, class_name)
 
 def start_game(screen: pygame.Surface, game_name: str, p1: str, p2: str):
-
+    #Starts selected game bu calling its .run_game() method
     GameClass = load_game_class(game_name)
     game      = GameClass(p1, p2)
 
@@ -523,20 +552,20 @@ def main():
     # Hub loop
     while True:
         menu      = MenuScreen(screen, p1, p2)
-        game_name = menu.run()
+        game_name = menu.run()      #menu.run() returns name of slelected game or none if pressed QUIT
 
         if game_name is None:
             # Window closed from menu
             break
 
         # Run selected game
-        winner, loser = start_game(screen, game_name, p1, p2)
+        winner, loser = start_game(screen, game_name, p1, p2)   #Returns none, none if draw
         update_game_frequency(game_name)
         
 
         result_str = f"{winner} wins!" if winner else "It's a draw!"
         post = Postgame(screen, result_str, winner, loser, game_name)
-        play_again = post.run()
+        play_again = post.run()                #Runs post game stuff and returns True if players want to play again
 
         if not play_again:
             break
