@@ -1,10 +1,5 @@
 #!/bin/bash
 
-
-
-#alternative code for taking user names
-    # mapfile -t users < <(cut -d $'\t' -f1 users.tsv|sort -u)
-    # echo "${users[@]}"
 # code for usernames
 IFS=$'\n' read -r -d "" -a users < <(cut -d $'\t' -f1 users.tsv|sort -u) 
 #echo "${users[@]}"
@@ -18,7 +13,7 @@ u=${#users[@]}
     #echo "${games[@]}"
     #b=${#games[@]}
 
-games=(connect4 othello tictactoe)
+games=(ConnectFour Othello Tic-Tac-Toe)
 g=${#games[@]}
 
 
@@ -65,7 +60,7 @@ done < history.csv
 for((i=0;i<u;i++));do
     for((j=0;j<g;j++));do
         if [[ ${l[$i,$j]} -eq 0 ]];then
-            wl["$i,$j"]="infinty"
+            wl["$i,$j"]="infinity"
             continue
         fi
         wl["$i,$j"]=$(echo "scale=3;${w[$i,$j]}/${l[$i,$j]}" | bc )
@@ -99,6 +94,10 @@ for((i=0;i<u;i++));do
         k=${#users[$i]}
     fi
 done
+
+if [[ 8 -gt ${k} ]];then
+    k=8
+fi
 
 if [[ "$1" = "sort_by_wins" ]];then
     sort  -t ',' -k2,2rn -k3,3n connect4.csv > 1.csv
@@ -151,8 +150,8 @@ awk '
     }
 ' othello.csv
 
-sort -t "," -k5,5r -k4,4rn -k2,2rn 1.csv > "othello.csv"
-cut -d ","  -f1-4 othello.csv > "1.csv"
+sort -t "," -k5,5r -k4,4rn -k2,2rn 2.csv > "othello.csv"
+cut -d ","  -f1-4 othello.csv > "2.csv"
 
 awk '
     BEGIN{
@@ -167,7 +166,7 @@ awk '
             print $0,0 >> "3.csv"
         }
     }
-' connect4.csv
+' tictactoe.csv
 
 sort -t "," -k5,5r -k4,4rn -k2,2rn 3.csv > "tictactoe.csv"
 cut -d ","  -f1-4 tictactoe.csv >"3.csv"
@@ -215,4 +214,28 @@ done < 3.csv
 echo "+${sep1}+${sep2}+${sep2}+${sep2}+"
 echo "*********************************END*********************************"
 
-rm connect4.csv othello.csv tictactoe.csv 1.csv 2.csv 3.csv 
+
+
+
+
+
+
+#for plotting bargraph
+>count_of_games.csv
+>a.csv #created for temperory storage of information
+for((i=0;i<u;i++));do
+    let tw=0 #totalwins
+    let tl=0 #totallo
+    for((j=0;j<g;j++));do
+        tw=$((tw + w[$i,$j]))
+        tl=$((tl + l[$i,$j]))
+    done
+    
+    echo "${users[$i]},${tw},${w[$i,0]},${w[$i,1]},${w[$i,2]},${tl},${l[$i,0]},${l[$i,1]},${l[$i,2]}" >> count_of_games.csv 
+done
+
+
+sort -t "," -k2rn count_of_games.csv > a.csv
+cat a.csv > count_of_games.csv
+rm connect4.csv othello.csv tictactoe.csv 1.csv 2.csv 3.csv a.csv 
+
