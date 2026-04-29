@@ -49,6 +49,24 @@ def show_leaderboard(sort_by):
     subprocess.run(["bash", LEADERBOARD_SH, sort_by])
 
 
+#--gamefrequency updating------------------------------------------------------
+def update_game_frequency(game_name: str):
+    with open("games_frequency.csv", "r") as f:
+        values = f.readline().strip("\n").split(",")
+    
+    n1, n2, n3 = int(values[0]), int(values[1]), int(values[2])
+
+    if game_name == "ConnectFour":
+        n1 += 1
+    elif game_name == "Othello":
+        n2 += 1
+    elif game_name == "Tic-Tac-Toe":
+        n3 += 1
+
+    with open("games_frequency.csv", "w") as f:
+        f.write(f"{n1},{n2},{n3}\n")
+
+
 #----------------------------------------------------------------------------
 #showing statitics
 #----------------------------------------------------------------------------
@@ -339,7 +357,7 @@ class Postgame:
                     return False
                 
                 if event.type == pygame.KEYDOWN:
-                    if self._phase == "again":
+                    if self.phase == "again":
                         if event.key == pygame.K_y:
                             return True
                         if event.key in (pygame.K_n, pygame.K_ESCAPE):
@@ -510,6 +528,8 @@ def main():
 
         # Run selected game
         winner, loser = start_game(screen, game_name, p1, p2)
+        update_game_frequency(game_name)
+        
 
         result_str = f"{winner} wins!" if winner else "It's a draw!"
         post = Postgame(screen, result_str, winner, loser, game_name)
