@@ -2,7 +2,7 @@ import pygame as py,numpy as np
 import sys
 import os
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) #adds path for game.py
 
 import csv
 import subprocess
@@ -23,9 +23,11 @@ class Othello(BoardGame):
     #------------width and height of one box----------------
     x=BoardGame.BOARD_W/8
     y=BoardGame.BOARD_H/8
-    score=np.array([60,2,2])
+    score=np.array([60,2,2])  #stores no of empty boxes,player 1 score,player 2 score
 
-
+    #--------------------------------------------------------
+    #Updating scores
+    #--------------------------------------------------------
     def update_score(self):
         s1=0
         s2=0
@@ -36,16 +38,21 @@ class Othello(BoardGame):
         self.score[1]=s1
         self.score[2]=s2
         self.score[0]=64-s1-s2
-
+    
+    #--------------------------------------------------------
+    # The proportionality score bar
+    #--------------------------------------------------------
     def scoreboard(self,screen:py.Surface):
        s1=self.score[1]
        s2=self.score[2]
-       p1_l=(s1/(s1+s2))*self.W
-       p2_l=(s2/(s1+s2))*self.W
-       py.draw.rect(screen,"white",(0,self.TOP_BAR_H,p1_l,10))
+       p1_l=(s1/(s1+s2))*self.W    #player 1 score bar length
+       p2_l=(s2/(s1+s2))*self.W    #player 2 score bar length
+       py.draw.rect(screen,"white",(0,self.TOP_BAR_H,p1_l,10)) 
        py.draw.rect(screen,"black",(p1_l,self.TOP_BAR_H,p2_l,10))
 
-
+    #----------------------------------------------------------
+    # Drawing top bar
+    #----------------------------------------------------------
     def draw_top_bar(self, surf):
         py.draw.rect(surf,'#074B4F', (0, 0,self.W,self.TOP_BAR_H))
         game_text = self.get_font(30, True).render(self.__class__.__name__, True, "gold")
@@ -61,10 +68,10 @@ class Othello(BoardGame):
 
             x = self.W / 2 - (p1_text.get_width() + p2_text.get_width() + vs_text.get_width()) / 2
 
-            surf.blit(p1_text, (x, 20)); surf.blit(p1s_text,(x-40,20));x += p1_text.get_width()
+            surf.blit(p1_text, (x, 20)); surf.blit(p1s_text,(x-30,20));x += p1_text.get_width()
             surf.blit(vs_text, (x, 20)); x += vs_text.get_width()
             surf.blit(p2_text,(x,20))
-            surf.blit(p2s_text,(x+p2_text.get_width() + 15,20))
+            surf.blit(p2s_text,(x+p2_text.get_width()+5,20))
 
             turn_color = 'white' if self.current_player == 1 else (28, 28, 28)
             turn_text = self.get_font(30).render(f"{self.current_player_name()}'s Turn", True, turn_color)
@@ -83,19 +90,25 @@ class Othello(BoardGame):
 
         py.draw.line (surf, ( 45,  45,  75), (0,self.TOP_BAR_H), (self.W,self.TOP_BAR_H))
 
-
+    #--------------------------------------------------------------
+    # Drawing Board
+    #--------------------------------------------------------------
     def draw_board(self,screen:py.Surface):
-        
         x=self.BOARD_W/8
         y=self.BOARD_H/8
         BS=py.Surface((self.BOARD_W,self.BOARD_H))
         BS.fill('#32a832')
         screen.blit(BS,(self.BOARD_X,self.BOARD_Y))
+        # drawing lines------
         for i in range(0,9):
             py.draw.line(screen,'black',(self.BOARD_X+i*x,self.BOARD_Y),(self.BOARD_X+i*x,self.BOARD_Y+self.BOARD_H),2)
         for i in range(0,9):
             py.draw.line(screen,'black',(self.BOARD_X,self.BOARD_Y+i*y),(self.BOARD_X+self.BOARD_W,self.BOARD_Y+i*y),2)
-        
+
+
+    #--------------------------------------------------------------
+    # Resets Board and scores whenever game is restarted
+    #--------------------------------------------------------------    
     def reset(self):
         self.board=np.zeros((8,8))
         self.current_player=1
@@ -107,7 +120,9 @@ class Othello(BoardGame):
         self.board[4,3]=2
         self.board[4,4]=1
 
-    #----------box(screen,i,j) returns you the  transparent surface,rectangle of the box at (i,j) location------------------------------------
+    #------------------------------------------------------------------------
+    # box(screen,i,j) returns you the  transparent surface,rectangle of the box at location
+    #--------------------------------------------------------------------------
     def box(self,screen:py.Surface,i:int,j:int) -> tuple[py.Surface,py.Rect]:
         box_s=py.Surface((self.x,self.y),py.SRCALPHA) #py.SRCALPHA allow transparency
         box_r=box_s.get_rect()
@@ -116,10 +131,13 @@ class Othello(BoardGame):
         
         return box_s,box_r
     
+
+    #-------------------------------------------------------------------------
     #this functions fills the screen with circles
+    #-------------------------------------------------------------------------
     def fill_board(self,screen:py.Surface):
         centre=(self.x//2,self.y//2)
-        for i,j in zip(*np.where(self.board==1)):
+        for i,j in zip(*np.where(self.board==1)): #zip function zips two arrays
             bs,br=self.box(screen,i,j)
             py.draw.circle(bs,self.colour[1],centre,(self.x -4)//2,0)
             screen.blit(bs,br)
@@ -129,32 +147,39 @@ class Othello(BoardGame):
             py.draw.circle(bs,self.colour[2],centre,(self.x-4)//2,0)
             screen.blit(bs,br)
 
-    #mx=mouse x_pos,my=mouse y_pos 
-    #k is a variable which is set to be false for any point fi the point is along diagonal or horizontal or vertical to the mouse point then k is set to true and if in betwen the point and mouse point if there is some random 
+    #-------------------------------------------------------------------------
+    # returns whether (i,j) is valid or not
+    #-------------------------------------------------------------------------
+    
     def is_validmove(self,i:int,j:int):
+
+        #k is a variable which is set to be false for any point if the point is along diagonal or horizontal or vertical to the point  (i,j) then k is set to true and if in betwen the point and (i,j)  there is some other value other than opposite pplayers value then again k is false.So k gives whether a point (i,j) is  a valid move or not
+
+        #mx=mouse x_pos,my=mouse y_pos
+
         if(0<=i and i<8 and 0<=j and j<8):
             for a,b in zip(*np.where(self.board==self.current_player)):
                 if(self.board[i,j]==0):
                     k=False  
-                    if(b-a == j-i):
+                    if(b-a == j-i):   #checking diagonally
                         arr=np.diag(self.board[min(a,i)+1:max(a,i),min(b,j)+1:max(b,j)])
                         k=True
                         if(np.any(arr != self.opponent_player()) or arr.size==0):
                             k=False
                          
-                    if(b+a==j+i):
+                    if(b+a==j+i):    #checking other diagonal
                         arr=np.diag(np.fliplr(self.board[min(a,i)+1:max(a,i),min(b,j)+1:max(b,j)])) 
                         k=True  
                         if(np.any(arr!=self.opponent_player()) or arr.size==0):
                             k=False
                         
-                    if(a==i):
+                    if(a==i):       #checking vertically
                         arr=self.board[i,min(b,j)+1:max(j,b)]
                         k=True
                         if(np.any(arr!=self.opponent_player()) or arr.size==0):
                             k=False
                      
-                    if(b==j):
+                    if(b==j):       #checking horizonatlly
                         arr=self.board[min(a,i)+1:max(a,i),j]
                         k=True
                         if(np.any(arr!=self.opponent_player())  or arr.size==0):
@@ -165,7 +190,9 @@ class Othello(BoardGame):
             return False
     
 
-    #--------it highlights the box if it is valid to place there and it shows all valid moves also and returns number of valid moves of current player---------
+    #------------------------------------------------------------------
+    # it highlights the box if it is valid to place there and it shows all valid moves also and returns number of valid moves of current player
+    #-----------------------------------------------------------------
     def show_valid(self,screen:py.Surface) -> int:
         a=0
         for i,j in zip(*np.where(self.board==0)):
@@ -183,7 +210,9 @@ class Othello(BoardGame):
 
         return a
 
-    #---------modifies board value on click and changes the turn-----------
+    #-----------------------------------------------------------------
+    # modifies board value on click and changes the turn
+    # -----------------------------------------------------------------
     def update_board(self):
         mx,my=py.mouse.get_pos()
         i=int((my-self.BOARD_Y)/(self.y))
@@ -227,7 +256,9 @@ class Othello(BoardGame):
                         self.board[i,j+y]=self.current_player    
             self.switch_turn()
 
-    #----check win status and returns true or false ----------
+    #--------------------------------------------------------------
+    # check win status and returns true or false 
+    # -------------------------------------------------------------
     def gameover(self):
         if(self.score[0]==0 or (self.no_of_valid[1]==0 and self.no_of_valid[2]==0)):
             if(self.score[1]>self.score[2]):
@@ -244,7 +275,9 @@ class Othello(BoardGame):
    
 
     
-    #----run_game runs the gameloop and returns winner and loser in a tuple and exits the loop 
+    #-----------------------------------------------------------------------------
+    # run_game runs the gameloop and returns winner and loser in a tuple and exits the loop 
+    #----------------------------------------------------------------------------
     def run_game(self,screen:py.Surface):
         running=True
 
