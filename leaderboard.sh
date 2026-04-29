@@ -36,24 +36,26 @@ gi=0     #game index
 
 while read -r line ;do
     LINE=$(echo "${line}"|tr -d '\r')
-    IFS=',' read -r -a arr <<< "$LINE"
-    for((i=0;i<u;i++));do
-        if [[ "${arr[0]}" = "${users[$i]}" ]]; then
-            wi=${i}
-        fi
-        if [[ "${users[$i]}" = "${arr[1]}" ]]; then
-            li=${i} 
-        fi   
-    done
+    if [[ -n "${LINE}" ]]; then
+        IFS=',' read -r -a arr <<< "$LINE"
+        for((i=0;i<u;i++));do
+            if [[ "${arr[0]}" = "${users[$i]}" ]]; then
+                wi=${i}
+            fi
+            if [[ "${users[$i]}" = "${arr[1]}" ]]; then
+                li=${i} 
+            fi   
+        done
+        
+        for((j=0;j<g;j++));do
+            if [[ "${games[$j]}" = "${arr[3]}" ]]; then
+                gi=${j}
+            fi
+        done
     
-    for((j=0;j<g;j++));do
-        if [[ "${games[$j]}" = "${arr[3]}" ]]; then
-            gi=${j}
-        fi
-    done
-
-    ((w[$wi,$gi]++))    
-    ((l[$li,$gi]++))
+        ((w[$wi,$gi]++))    
+        ((l[$li,$gi]++))
+    fi
 
 done < history.csv
 
