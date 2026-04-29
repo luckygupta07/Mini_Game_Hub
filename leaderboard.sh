@@ -7,25 +7,20 @@ IFS=$'\n' read -r -d "" -a users < <(cut -d $'\t' -f1 users.tsv|sort -u)
 #number of users registered
 u=${#users[@]}
 
-
-#alternative code for more than three games
-    #IFS=$'\n' read -r -d "" -a games < <(cut -d ',' -f4 history.csv|sort -u |tr -d '\r')
-    #echo "${games[@]}"
-    #b=${#games[@]}
-
+#-storing games 
 games=(ConnectFour Othello Tic-Tac-Toe)
 g=${#games[@]}
 
 
 #creating ASSOCIATIVE ARRAYS
-declare -A  w
-declare -A  l
-declare -A  wl
+declare -A  w       # w[i,j] -> number of wins of ith user in jth game
+declare -A  l       # l[i,j] -> number of loses of ith user in jth game
+declare -A  wl      # wl[i,j] -> win by lose ratio of ith player in jth game
 
 for((i=0;i<u;i++));do
     for((j=0;j<g;j++));do
-        w["$i,$j"]=0
-        l["$i,$j"]=0
+        w["$i,$j"]=0  
+        l["$i,$j"]=0  
     done
 done
 
@@ -37,7 +32,7 @@ gi=0     #game index
 while read -r line ;do
     LINE=$(echo "${line}"|tr -d '\r')
     if [[ -n "${LINE}" ]]; then
-        IFS=',' read -r -a arr <<< "$LINE"
+        IFS=',' read -r -a arr <<< "$LINE"  #stores line of history.csv as an array
         for((i=0;i<u;i++));do
             if [[ "${arr[0]}" = "${users[$i]}" ]]; then
                 wi=${i}
@@ -53,8 +48,8 @@ while read -r line ;do
             fi
         done
     
-        ((w[$wi,$gi]++))    
-        ((l[$li,$gi]++))
+        ((w[$wi,$gi]++))    #increasing count of respective users game wins of that line
+        ((l[$li,$gi]++))    #increasing count of respective users game loses of that line
     fi
 
 done < history.csv
@@ -76,7 +71,7 @@ touch 1.csv 2.csv 3.csv
 >connect4.csv
 >othello.csv
 >tictactoe.csv
-#connect4
+
 
 for((i=0;i<u;i++));do
     echo "${users[$i]},${w[$i,0]},${l[$i,0]},${wl[$i,0]}">>connect4.csv
@@ -97,28 +92,34 @@ for((i=0;i<u;i++));do
     fi
 done
 
+# if k is less than "Username" length it will be problem
 if [[ 8 -gt ${k} ]];then
-    k=8
+    k=8 
 fi
 
+#1.csv,2.csv,3.csv stores the sorted files of respective games connet4.csv,othello.csv,tictactoe.csv
+#--sorting by wins--------
 if [[ "$1" = "wins" ]];then
     sort  -t ',' -k2,2rn -k3,3n connect4.csv > 1.csv
     sort  -t ',' -k2,2rn -k3,3n othello.csv > 2.csv
     sort  -t ',' -k2,2rn -k3,3n tictactoe.csv > 3.csv
 fi
 
+#--sorting by loses ------- 
 if [[ "$1" = "losses" ]];then
     sort  -t ',' -k3,3rn -k2,2n connect4.csv > 1.csv
     sort  -t ',' -k3,3rn -k2,2n othello.csv > 2.csv
     sort  -t ',' -k3,3rn -k2,2n tictactoe.csv > 3.csv
 fi
 
+#--sorting by winbyloss ratio---
 if [[ "$1" = "ratio" ]];then
 #emptying the files
     >1.csv
     >2.csv
     >3.csv
 #now sorting using awk
+#add 1 in 5th column if w/l=infinity else add 0
 awk '
     BEGIN{
         FS=","
@@ -126,7 +127,7 @@ awk '
     }
     {
         if("$4" == "infinity"){
-             print $0,1 >> "1.csv"
+             print $0,1 >> "1.csv" 
         }
         else{
             print $0,0 >> "1.csv"
@@ -218,10 +219,6 @@ echo "*********************************END*********************************"
 
 
 
-
-
-
-
 #for plotting bargraph
 >count_of_games.csv
 >a.csv #created for temperory storage of information
@@ -239,5 +236,5 @@ done
 
 sort -t "," -k2rn count_of_games.csv > a.csv
 cat a.csv > count_of_games.csv
-rm connect4.csv othello.csv tictactoe.csv 1.csv 2.csv 3.csv a.csv 
+rm connect4.csv othello.csv tictactoe.csv 1.csv 2.csv 3.csv a.csv
 
