@@ -11,17 +11,21 @@ MARGIN     = 40
 BOARD_SIZE = 7
 WIN_LENGTH  = 4
 
-BOARD_W = W - 2 * MARGIN          # 620
-CELL_SIZE = BOARD_W // BOARD_SIZE # 88
+CELL_SIZE =  88
+BOARD_W = CELL_SIZE * BOARD_SIZE   # 616
 
 BOARD_X = MARGIN
 BOARD_Y = TOP_BAR_H + CELL_SIZE 
-BOARD_H = BOARD_W  # 620
+BOARD_H = BOARD_W  # 616
+
 
 class ConnectFour(BoardGame):
-     
-    def __init__(self, player1, player2):
-        super.__init__(player1, player2)
+
+    def reset(self):
+        self.board          = np.zeros((BOARD_SIZE, BOARD_SIZE), dtype=int)
+        self.current_player = 1
+        self.winner         = None
+        self.move_count     = 0
     
     def get_cell(self, x, y):
         c = (x - BOARD_X) // CELL_SIZE
@@ -32,34 +36,68 @@ class ConnectFour(BoardGame):
         else: return ((-1, -1))
 
     def check_win(self):
-        from numpy.lib.stride_tricks import sliding_window_view
+        rows = np.arange(BOARD_SIZE)[:,None,None]                 # (n,1,1)
+        start_cols = np.arange(BOARD_SIZE-WIN_LENGTH+1)[None,:,None]  # (1,n-5+1,1)
+        offsets = np.arange(WIN_LENGTH)[None,None,:]     # (1,1,5)
 
-        rows = sliding_window_view(self.board, (1, WIN_LENGTH)).reshape(-1, WIN_LENGTH)
-        if(np.any(np.all(rows == self.current_player, axis = 1))):
+        row_windows = self.board[rows, start_cols+offsets]    # (n, n-5+1, 5)
+
+        if(np.any(np.all(row_windows == self.current_player, axis = 2))):
             self.winner = self.current_player
+            matches = np.argwhere(np.all(row_windows == self.current_player, axis = 2))
+            for (x,y) in matches:
+                self.winner_line = (y, x, 0)
+                break
             return
 
-        cols = sliding_window_view(self.board, (WIN_LENGTH, 1)).reshape(-1, WIN_LENGTH)
-        if(np.any(np.all(cols == self.current_player, axis = 1))):
+        start_rows = np.arange(BOARD_SIZE-WIN_LENGTH+1)[:,None,None]  # (n-5+1,1,1)
+        cols = np.arange(BOARD_SIZE)[None,:,None]                     # (1,n,1)
+        offsets = np.arange(WIN_LENGTH)[None,None,:]         # (1,1,5)
+
+        col_windows = self.board[start_rows+offsets, cols]        # (n-5+1, n, 5)
+        if(np.any(np.all(col_windows == self.current_player, axis = 2))):
             self.winner = self.current_player
+            matches = np.argwhere(np.all(col_windows == self.current_player, axis = 2))
+            for (x,y) in matches:
+                self.winner_line = (y, x, 90)
+                break
             return
         
-        diags = sliding_window_view(self.board, (WIN_LENGTH, WIN_LENGTH)).reshape(-1, WIN_LENGTH, WIN_LENGTH)
-        diags = diags[:, range(WIN_LENGTH), range(WIN_LENGTH)]
-        if(np.any(np.all(diags == self.current_player, axis = 1))):
+        start_rows = np.arange(BOARD_SIZE-WIN_LENGTH+1)[:,None,None]  # (n-5+1,1,1)
+        start_cols = np.arange(BOARD_SIZE-WIN_LENGTH+1)[None,:,None]  # (1,n-5+1,1)
+        offsets = np.arange(WIN_LENGTH)[None,None,:]         # (1,1,5)
+
+        diag_windows = self.board[start_rows+offsets, start_cols+offsets]  # (n-5+1, n-5+1, 5)
+
+        if(np.any(np.all(diag_windows == self.current_player, axis = 2))):
             self.winner = self.current_player
+            matches = np.argwhere(np.all(diag_windows == self.current_player, axis = 2))
+            for (x,y) in matches:
+                self.winner_line = (y, x, 45)
+                break
             return
         
-        anti_diags = sliding_window_view(self.board, (WIN_LENGTH, WIN_LENGTH)).reshape(-1, WIN_LENGTH, WIN_LENGTH)
-        anti_diags = anti_diags[:, range(WIN_LENGTH),range(WIN_LENGTH-1, -1, -1)]
-        if(np.any(np.all(anti_diags == self.current_player, axis = 1))):
+
+        start_rows = np.arange(BOARD_SIZE-WIN_LENGTH+1)[:,None,None]   # (n-5+1,1,1)
+        start_cols = np.arange(WIN_LENGTH-1, BOARD_SIZE)[None,:,None]  # (1,n-5+1,1)
+        offsets = np.arange(WIN_LENGTH)[None,None,:]          # (1,1,5)
+
+        anti_windows = self.board[start_rows+offsets, start_cols-offsets]  # (n-5+1, n-5+1, 5)
+
+
+        if(np.any(np.all(anti_windows == self.current_player, axis = 2))):
             self.winner = self.current_player
+            matches = np.argwhere(np.all(anti_windows== self.current_player, axis = 2))
+            for (x,y) in matches:
+                actual_col = y + (WIN_LENGTH - 1)
+                self.winner_line = (actual_col , x, -45)
+                break
             return
         
-        if( self.move_count == BOARD_SIZE*BOARD_SIZE - 1):
+        if( self.move_count == BOARD_SIZE*BOARD_SIZE ):
             self.winner = 0
-        
 
+        
 # ===========================================================================
     # Draw
 
@@ -67,6 +105,10 @@ class ConnectFour(BoardGame):
         """Render full frame. Call self.draw_top_bar(surf) here."""
         
         pygame.draw.rect(surf, "blue", (BOARD_X, BOARD_Y , BOARD_W, BOARD_H ), border_radius=4)
+
+        if self.winner is None:
+            self.draw_hovered_column(surf)
+            self.draw_floating_ball(surf)
 
         for r in range(BOARD_SIZE):
             for c in range(BOARD_SIZE):
@@ -79,9 +121,28 @@ class ConnectFour(BoardGame):
         self.fill_board(surf)
         self.draw_top_bar(surf)
     
+    def draw_hovered_column(self, surf:pygame.Surface):
+        x, y = pygame.mouse.get_pos()
+        c = (x - BOARD_X) // CELL_SIZE
+        r = (y - BOARD_Y) // CELL_SIZE
+
+        if -1 <= r <BOARD_SIZE and 0 <= c < BOARD_SIZE and self.board[0,c] == 0:
+            pygame.draw.rect(surf, (16, 83, 156), (BOARD_X + c*CELL_SIZE, BOARD_Y, CELL_SIZE, BOARD_H))
+
+    def draw_floating_ball(self, surf:pygame.Surface):
+        x, y = pygame.mouse.get_pos()
+        c = (x - BOARD_X) // CELL_SIZE
+        r = (y - BOARD_Y) // CELL_SIZE
+
+        if -1 <= r <BOARD_SIZE and 0 <= c < BOARD_SIZE and self.board[0,c] == 0:
+            cx = BOARD_X + c * CELL_SIZE + CELL_SIZE // 2
+            cy = BOARD_Y - CELL_SIZE // 2 
+            pygame.draw.circle(surf, "red" if self.current_player == 1 else ( 60, 255, 255), (cx, cy), CELL_SIZE/2*0.9)
+
+
     def draw_top_bar(self, surf):
             pygame.draw.rect(surf, ( 18,  18,  35), (0, 0, W, 80))
-            game_text = self.get_font(30).render(self.__class__.__name__, True, (120, 120, 150))
+            game_text = self.get_font(30).render(self.__class__.__name__, True, "gold")
             surf.blit(game_text, (20,20))
 
             if( self.winner is None):
@@ -123,13 +184,68 @@ class ConnectFour(BoardGame):
             cy = BOARD_Y + r * CELL_SIZE + CELL_SIZE // 2
             pygame.draw.circle(surf, ( 60, 255, 255), (cx, cy), CELL_SIZE/2*0.9)
 
+    def draw_line(self, screen, x, y, theta):
+        cx = BOARD_X + CELL_SIZE*x + CELL_SIZE//2
+        cy = BOARD_Y + CELL_SIZE*y + CELL_SIZE//2
+        length = (WIN_LENGTH - 1)*CELL_SIZE
+
+        if theta == 0:      # horizontal
+            cx_f = cx + length
+            cy_f = cy
+
+            for i in range(WIN_LENGTH):
+                pygame.draw.circle(screen, "gold", (cx + i*CELL_SIZE, cy), CELL_SIZE/2*0.9, 6)
+
+        elif theta == 90:   # vertical
+            cx_f = cx
+            cy_f = cy + length
+
+            for i in range(WIN_LENGTH):
+                pygame.draw.circle(screen, "gold", (cx, cy + i*CELL_SIZE), CELL_SIZE/2*0.9, 6)
+
+        elif theta == 45:   # main diagonal 
+            cx_f = cx + length
+            cy_f = cy + length
+
+            for i in range(WIN_LENGTH):
+                pygame.draw.circle(screen, "gold", (cx + i*CELL_SIZE, cy + i*CELL_SIZE), CELL_SIZE/2*0.9, 6)
+
+        elif theta == -45:  # anti-diagonal 
+            cx_f = cx - length
+            cy_f = cy + length
+
+            for i in range(WIN_LENGTH):
+                pygame.draw.circle(screen, "gold", (cx - i*CELL_SIZE, cy + i*CELL_SIZE), CELL_SIZE/2*0.9, 6)
+
+        pygame.draw.line(screen, "gold", (cx, cy), (cx_f, cy_f), 5)
+
+
 # ===========================================================================
     #Mouse
-    def handle_click(self, pos: tuple):
+    def handle_click(self, pos: tuple, surf:pygame.Surface):
         x, y = pos
         r, c = self.get_cell(x, y)
 
         if ( r == -1 or self.board[0,c] != 0 ): return
+
+        clock     = pygame.time.Clock()
+
+        for i in range(BOARD_SIZE):
+
+            if self.board[i, c] !=0 :
+                break
+
+            cx = BOARD_X + c * CELL_SIZE + CELL_SIZE // 2
+            cy = BOARD_Y + i * CELL_SIZE + CELL_SIZE // 2
+
+            # Redraw board otherwise whole path is colored
+            self.draw_board(surf)
+            # Draw ball at current falling position
+            pygame.draw.circle(surf, (60,255,255) if self.current_player == 2 else "red", (cx, cy), CELL_SIZE//2*0.9)
+
+            pygame.display.update()
+            clock.tick(15) 
+
         for i in range(BOARD_SIZE-1, -1, -1):
             if self.board[i, c] == 0:
                 self.board[i, c] = self.current_player
@@ -151,11 +267,14 @@ class ConnectFour(BoardGame):
                     pass
 
                 if event.type == pygame.MOUSEBUTTONDOWN:
-                    self.handle_click(pygame.mouse.get_pos())
-
+                    self.handle_click(pygame.mouse.get_pos(), screen)
 
                 screen.fill("black")
                 self.draw_board(screen)
+
+                if self.winner is not None:
+                    self.draw_line(screen, *self.winner_line)
+
                 if (self.winner != None):
                     pygame.display.update()
                     pygame.time.wait(1000)
