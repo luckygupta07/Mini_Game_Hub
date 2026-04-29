@@ -9,13 +9,13 @@ import subprocess
 from datetime import date
 from  game import BoardGame 
 
-py.init()
+
 
 clock=py.time.Clock()
 
-class othello(BoardGame):
+class Othello(BoardGame):
     #colour for player1,player2
-    colour={1:"red",2:"green"}
+    colour={1:"white",2:"black"}
 
     #dictionary for storing number of valid moves
     no_of_valid={1:2,2:2}
@@ -38,45 +38,50 @@ class othello(BoardGame):
         self.score[0]=64-s1-s2
 
     def scoreboard(self,screen:py.Surface):
-        p1_t=self.get_font(40)
-        p1_s=p1_t.render(self.player_names[1],True,self.colour[1])
-        p1_r=p1_s.get_rect()
-        vs_t=self.get_font(40)
-        vs_s=vs_t.render('VS',True,'black')
-        vs_r=vs_s.get_rect()
-        p2_t=self.get_font(40)
-        p2_s=p2_t.render(self.player_names[2],True,self.colour[2])
-        p2_r=p2_s.get_rect()
-        vs_r.center=(self.W/2,30)
-        l=vs_r.width
-        p1_r.topright=((self.W-l-20)/2,0)
-        p2_r.topleft=((self.W+l+20)/2,0)
-        p1s_t=self.get_font(30)
-        p1s_s=p1s_t.render(str(self.score[1]),True,self.colour[1])
-        p1s_r=p1s_s.get_rect(center=(p1_r.centerx,p1_r.centery+40))
-        
-        p2s_t=self.get_font(30)
-        p2s_s=p2s_t.render(str(self.score[2]),True,self.colour[2])
-        p2s_r=p2s_s.get_rect(center=(p2_r.centerx,p2_r.centery+40))
-        
-        c=max(p1_r.width,p2_r.width)
-        a=20+c+10+vs_r.width+10+c+20
-        b=90
-        bg_s=py.Surface((a,b))
-        bg_r=bg_s.get_rect(center=(self.W/2,47))
-        
-        
-        py.draw.rect(screen,'white',bg_r,0,10,10,10,10,10)
-        py.draw.rect(screen,'black',(p1s_r.topleft[0],p1s_r.topleft[1],30,40),0,4)
-        py.draw.rect(screen,'black',(p2s_r.topleft[0],p2s_r.topleft[1],30,40),0,4)
-        
-        screen.blit(p1_s,p1_r)
-        screen.blit(vs_s,vs_r)
-        screen.blit(p2_s,p2_r)
-        screen.blit(p1s_s,p1s_r)
-        screen.blit(p2s_s,p2s_r)
+       s1=self.score[1]
+       s2=self.score[2]
+       p1_l=(s1/(s1+s2))*self.W
+       p2_l=(s2/(s1+s2))*self.W
+       py.draw.rect(screen,"white",(0,self.TOP_BAR_H,p1_l,10))
+       py.draw.rect(screen,"black",(p1_l,self.TOP_BAR_H,p2_l,10))
 
 
+    def draw_top_bar(self, surf):
+        py.draw.rect(surf,'#074B4F', (0, 0,self.W,self.TOP_BAR_H))
+        game_text = self.get_font(30, True).render(self.__class__.__name__, True, "gold")
+        surf.blit(game_text, (20,20))
+
+        if( self.winner is None):
+            p1_text = self.get_font(30).render(self.player_names[1], True, 'white')
+            p2_text = self.get_font(30).render(self.player_names[2], True, (28, 28, 28))
+            vs_text = self.get_font(30).render(" v/s ", True, "yellow")
+            p1s_text=self.get_font(30).render(str(self.score[1]),True, 'white')
+            p2s_text=self.get_font(30).render(str(self.score[2]),True,(28, 28, 28))
+            
+
+            x = self.W / 2 - (p1_text.get_width() + p2_text.get_width() + vs_text.get_width()) / 2
+
+            surf.blit(p1_text, (x, 20)); surf.blit(p1s_text,(x-30,20));x += p1_text.get_width()
+            surf.blit(vs_text, (x, 20)); x += vs_text.get_width()
+            surf.blit(p2_text,(x,20))
+            surf.blit(p2s_text,(x+30,20))
+
+            turn_color = 'white' if self.current_player == 1 else (28, 28, 28)
+            turn_text = self.get_font(30).render(f"{self.current_player_name()}'s Turn", True, turn_color)
+            surf.blit(turn_text, (self.W - turn_text.get_width() - 10, 20))
+
+        elif self.winner == 0:
+                draw_text = self.get_font(40).render("It's a Draw", True, "white")
+                x = self.W / 2 - draw_text.get_width() / 2
+                surf.blit(draw_text, (x, 20))
+
+        else :
+                winner_text = self.get_font(40).render(f"{self.player_names[self.winner]} Wins", True, "white")
+                x = self.W / 2 - winner_text.get_width() / 2
+                surf.blit(winner_text, (x, 20))
+   
+
+        py.draw.line (surf, ( 45,  45,  75), (0,self.TOP_BAR_H), (self.W,self.TOP_BAR_H))
 
 
     def draw_board(self,screen:py.Surface):
@@ -84,17 +89,19 @@ class othello(BoardGame):
         x=self.BOARD_W/8
         y=self.BOARD_H/8
         BS=py.Surface((self.BOARD_W,self.BOARD_H))
+        BS.fill('#32a832')
         screen.blit(BS,(self.BOARD_X,self.BOARD_Y))
         for i in range(0,9):
-            py.draw.line(screen,'white',(self.BOARD_X+i*x,self.BOARD_Y),(self.BOARD_X+i*x,self.BOARD_Y+self.BOARD_H),2)
+            py.draw.line(screen,'black',(self.BOARD_X+i*x,self.BOARD_Y),(self.BOARD_X+i*x,self.BOARD_Y+self.BOARD_H),2)
         for i in range(0,9):
-            py.draw.line(screen,'white',(self.BOARD_X,self.BOARD_Y+i*y),(self.BOARD_X+self.BOARD_W,self.BOARD_Y+i*y),2)
+            py.draw.line(screen,'black',(self.BOARD_X,self.BOARD_Y+i*y),(self.BOARD_X+self.BOARD_W,self.BOARD_Y+i*y),2)
         
     def reset(self):
         self.board=np.zeros((8,8))
         self.current_player=1
         self.winner=None
         self.move_count=0
+        self.score=[60,2,2]
         self.board[3,3]=1
         self.board[3,4]=2
         self.board[4,3]=2
@@ -251,9 +258,10 @@ class othello(BoardGame):
                     self.update_board()
                     self.update_score()
             
-            screen.fill(self.colour[self.current_player])
+            screen.fill("gold")
             self.draw_board(screen)
-            self.scoreboard(screen)    
+            self.scoreboard(screen)
+            self.draw_top_bar(screen)    
             self.fill_board(screen)
             k=self.show_valid(screen)
             self.no_of_valid[self.current_player]=k
