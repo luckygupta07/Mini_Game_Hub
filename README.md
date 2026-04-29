@@ -30,5 +30,14 @@ We will encode these games using **PyGame GUI**.
 ---
 
 
-***We will do it***
+##Features
+1. *Mainmenu*
+2. *Pygame Gui*
+3. *Three games to play*
+4. Tic-Tac-Toe of 10x10
+5. ConnectFour of 7x7
+6. Othello of 8x8
+7. Leaderboard showup in terminal
+8. matplotlib graphs of statistics
+9. Gameover screen
 
