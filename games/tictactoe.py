@@ -103,9 +103,9 @@ class TicTacToe(BoardGame):
 
         # Draw grid
         for i in range(11):
-            pygame.draw.line(surf, "white", (BOARD_X, BOARD_Y + i*CELL_SIZE), (BOARD_X + BOARD_W, BOARD_Y + i*CELL_SIZE))
+            pygame.draw.line(surf, "black", (BOARD_X, BOARD_Y + i*CELL_SIZE), (BOARD_X + BOARD_W, BOARD_Y + i*CELL_SIZE), 3)
         for i in range(11):
-            pygame.draw.line(surf, "white", (BOARD_X + i*CELL_SIZE, BOARD_Y ), (BOARD_X + i*CELL_SIZE, BOARD_Y + BOARD_W))    
+            pygame.draw.line(surf, "black", (BOARD_X + i*CELL_SIZE, BOARD_Y ), (BOARD_X + i*CELL_SIZE, BOARD_Y + BOARD_W), 3)    
 
         self.draw_hovered_cell(surf)
         self.fill_board(surf)
@@ -113,13 +113,13 @@ class TicTacToe(BoardGame):
 
     def draw_top_bar(self, surf):
         pygame.draw.rect(surf, ( 18,  18,  35), (0, 0, W, TOP_BAR_H))
-        game_text = self.get_font(35, True).render(self.__class__.__name__, True, "gold")
+        game_text = self.get_font(35).render(self.__class__.__name__, True, "gold")
         surf.blit(game_text, (20,20))
 
         if( self.winner is None):
             p1_text = self.get_font(30).render(self.player_names[1], True, (255, 49, 49))
             p2_text = self.get_font(30).render(self.player_names[2], True, ( 60, 255, 255))
-            vs_text = self.get_font(30).render(" vs ", True, (224, 219, 13))
+            vs_text = self.get_font(30).render(" vs ", True, (120, 120, 150))
 
             x = W / 2 - (p1_text.get_width() + p2_text.get_width() + vs_text.get_width()) / 2
 
@@ -217,7 +217,7 @@ class TicTacToe(BoardGame):
 
                 if self.winner == 1 or self.winner == 2:
                     self.draw_line(screen, *self.winner_line)
-                    
+
                 if (self.winner != None):
                     pygame.display.update()
                     pygame.time.wait(1000)
