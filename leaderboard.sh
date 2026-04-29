@@ -99,19 +99,19 @@ if [[ 8 -gt ${k} ]];then
     k=8
 fi
 
-if [[ "$1" = "sort_by_wins" ]];then
+if [[ "$1" = "wins" ]];then
     sort  -t ',' -k2,2rn -k3,3n connect4.csv > 1.csv
     sort  -t ',' -k2,2rn -k3,3n othello.csv > 2.csv
     sort  -t ',' -k2,2rn -k3,3n tictactoe.csv > 3.csv
 fi
 
-if [[ "$1" = "sort_by_losses" ]];then
+if [[ "$1" = "losses" ]];then
     sort  -t ',' -k3,3rn -k2,2n connect4.csv > 1.csv
     sort  -t ',' -k3,3rn -k2,2n othello.csv > 2.csv
     sort  -t ',' -k3,3rn -k2,2n tictactoe.csv > 3.csv
 fi
 
-if [[ "$1" = "sort_by_winbyloss" ]];then
+if [[ "$1" = "ratio" ]];then
 #emptying the files
     >1.csv
     >2.csv
