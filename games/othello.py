@@ -64,7 +64,7 @@ class Othello(BoardGame):
             surf.blit(p1_text, (x, 20)); surf.blit(p1s_text,(x-30,20));x += p1_text.get_width()
             surf.blit(vs_text, (x, 20)); x += vs_text.get_width()
             surf.blit(p2_text,(x,20))
-            surf.blit(p2s_text,(x+30,20))
+            surf.blit(p2s_text,(x+p2_text.get_width()+5,20))
 
             turn_color = 'white' if self.current_player == 1 else (28, 28, 28)
             turn_text = self.get_font(30).render(f"{self.current_player_name()}'s Turn", True, turn_color)
