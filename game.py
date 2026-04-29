@@ -3,6 +3,7 @@ import os
 import csv
 import subprocess
 import pygame
+
 import numpy as np
 
 from datetime import date
@@ -24,7 +25,9 @@ BASE_DIR        = os.path.dirname(os.path.abspath(__file__))
 HISTORY_CSV     = os.path.join(BASE_DIR, "history.csv")
 LEADERBOARD_SH  = os.path.join(BASE_DIR, "leaderboard.sh")
 
+
 # ---------------------------------------------------------------------------
+
 # Visual constants
 # ---------------------------------------------------------------------------
 
