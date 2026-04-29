@@ -1,0 +1,577 @@
+\documentclass[12pt,a4paper]{article}
+
+% -----------------------------------------------------------------------
+% Packages
+% -----------------------------------------------------------------------
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{parskip}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{fancyhdr}
+\usepackage{amsmath}
+
+\geometry{margin=2.5cm}
+
+% -----------------------------------------------------------------------
+% Hyperref setup
+% -----------------------------------------------------------------------
+\hypersetup{
+    colorlinks=true,
+    linkcolor=black,
+    urlcolor=blue,
+    citecolor=black
+}
+
+% -----------------------------------------------------------------------
+% Code listing style
+% -----------------------------------------------------------------------
+\definecolor{codebg}{rgb}{0.95,0.95,0.97}
+\definecolor{codecomment}{rgb}{0.4,0.4,0.6}
+\definecolor{codestring}{rgb}{0.13,0.55,0.13}
+\definecolor{codekeyword}{rgb}{0.0,0.35,0.75}
+
+\lstdefinestyle{pythonstyle}{
+    backgroundcolor=\color{codebg},
+    commentstyle=\color{codecomment}\itshape,
+    keywordstyle=\color{codekeyword}\bfseries,
+    stringstyle=\color{codestring},
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    keepspaces=true,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    showspaces=false,
+    showstringspaces=false,
+    tabsize=4,
+    frame=single,
+    framesep=4pt,
+    rulecolor=\color{gray!40},
+}
+
+\lstdefinestyle{bashstyle}{
+    backgroundcolor=\color{codebg},
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    framesep=4pt,
+    rulecolor=\color{gray!40},
+    numbers=none,
+}
+
+% -----------------------------------------------------------------------
+% Header / footer
+% -----------------------------------------------------------------------
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{Mini Game Hub}
+\lhead{CS108 Project Report}
+\cfoot{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% -----------------------------------------------------------------------
+% Title
+% -----------------------------------------------------------------------
+\title{
+    \vspace{-1cm}
+    {\Large CS108 Project Report} \\[0.4em]
+    {\huge \textbf{Mini Game Hub}} \\[0.4em]
+    {\large Bash $\cdot$ Python $\cdot$ Pygame}
+}
+\author{Lucky Gupta and Duduku Jaswanth Balaji}
+\date{April 2025}
+
+% -----------------------------------------------------------------------
+% Document
+% -----------------------------------------------------------------------
+\begin{document}
+
+\maketitle
+\thispagestyle{fancy}
+\tableofcontents
+\newpage
+
+% ===================================================================
+\section{Introduction}
+% ===================================================================
+
+Mini Game Hub is a Two-player game hub built as part of the CS108 course
+(Spring semester 2026). It integrates Bash scripting for user authentication and
+Python (Pygame) for graphical gameplay, enabling two authenticated players to
+select a game from an interactive menu, play via a Pygame GUI window, and have
+their results recorded on a persistent leaderboard.
+
+The project focuses on modularity, code quality, and a clean user experience.
+It supports the following features:
+
+\begin{itemize}
+    \item Two-player authentication with SHA-256 hashed passwords stored in
+          \texttt{users.tsv}.
+    \item An interactive Pygame game-selection menu with a single-click launch.
+    \item Three fully playable board games rendered with Pygame:
+          Tic-Tac-Toe (10$\times$10), Othello (8$\times$8), and Connect Four
+          (7$\times$7).
+    \item Persistent game history recorded in \texttt{history.csv} after every
+          game.
+    \item A formatted terminal leaderboard rendered by a Bash script, sortable
+          by wins, losses, or win/loss ratio.
+    \item A post-game screen that prompts players to select a leaderboard sort
+          metric before displaying statistics.
+\end{itemize}
+
+% ===================================================================
+\section{Running Instructions}
+% ===================================================================
+
+\begin{itemize}
+    \item Ensure Python 3.10+ and \texttt{pip} are installed.
+    \item Install the required Python libraries:
+\begin{lstlisting}[style=bashstyle]
+pip install pygame-ce numpy matplotlib
+\end{lstlisting}
+    \item Navigate to the project root directory and run:
+\begin{lstlisting}[style=bashstyle]
+bash main.sh
+\end{lstlisting}
+    \item Follow the authentication prompts for both players, then select a
+          game from the Pygame menu that appears.
+    
+\end{itemize}
+
+% ===================================================================
+\section{Project Layout}
+% ===================================================================
+
+\subsection{Authentication (\texttt{main.sh})}
+
+\texttt{main.sh} is the entry point for the hub. It authenticates two players
+before launching the Python game engine.
+
+\begin{itemize}
+    \item Prompts for two distinct usernames and passwords sequentially.
+    \item Prevents both players from using the same username.
+    \item Hashes passwords with SHA-256 using \texttt{sha256sum} before storing
+          them in \texttt{users.tsv} --- plaintext passwords are never stored.
+    \item On login, hashes the typed password and compares it against the
+          stored hash; re-prompts on mismatch.
+    \item If a username does not exist, offers registration and updates
+          \texttt{users.tsv} accordingly.
+    \item Once both players are authenticated, calls:
+\begin{lstlisting}[style=bashstyle]
+python3 game.py <username1> <username2>
+\end{lstlisting}
+\end{itemize}
+
+\subsection{Game Engine (\texttt{game.py})}
+
+\texttt{game.py} receives both authenticated usernames and manages the full
+Python-side flow.
+
+\begin{itemize}
+    \item Initialises a 700$\times$800 Pygame window.
+    \item Displays the game-selection \textbf{MenuScreen}: a plain vertical
+          list of games, single click to launch --- no hover card effects, no
+          confirmation button.
+    \item Runs the selected game via \texttt{run\_game()}, which manages the
+          Pygame event loop generically across all three games.
+    \item After each game, displays the \textbf{PostGameScreen} in two phases:
+          \begin{enumerate}
+              \item Shows the result and three sort-metric buttons
+                    (Wins / Losses / W/L Ratio). On selection, writes a row to
+                    \texttt{history.csv} and calls \texttt{leaderboard.sh}.
+              \item Prompts both players to play another game or quit.
+          \end{enumerate}
+\end{itemize}
+
+\subsection{Game Menu}
+
+The menu renders each game as a plain text row. A single click on any row
+launches that game immediately. On hover, a subtle background tint and a thin
+left accent bar appear. There are no card boxes, no play button, and no
+double-click requirement.
+
+\subsection{In-Game UI}
+
+Every game uses a shared 700$\times$800 window with the following layout:
+
+\begin{center}
+\begin{tabular}{|c|c|}
+\hline
+\textbf{Region} & \textbf{Height} \\
+\hline
+Top UI bar & 80 px \\
+\hline
+Board area (centred, with 20 px margin) & 680 px \\
+\hline
+\end{tabular}
+\end{center}
+
+The top bar (implemented in \texttt{base\_game.py} as \texttt{draw\_top\_bar()})
+shows:
+\begin{itemize}
+    \item \textbf{Left}: game name (small, dimmed).
+    \item \textbf{Centre}: \textcolor{red}{P1name} \textbf{vs}
+          \textcolor{blue}{P2name} in player colours.
+    \item \textbf{Right}: whose turn it is (with a coloured dot), or the
+          result and keyboard hints once the game ends.
+\end{itemize}
+
+% ===================================================================
+\section{Class Structure}
+% ===================================================================
+
+\subsection{Base Class --- \texttt{BoardGame}}
+
+All games inherit from the \texttt{BoardGame} class defined in
+\texttt{game.py}. Each method in the class is overridable
+subclass.
+
+\textbf{Shared state attributes:}
+\begin{itemize}
+    \item \texttt{player\_names} --- dict mapping player integer (1 or 2) to
+          username string.
+    \item \texttt{current\_player} --- integer (1 or 2) indicating whose turn.
+    \item \texttt{board} --- a NumPy array representing the game board.
+    \item \texttt{winner} --- \texttt{1}, \texttt{2}, \texttt{0} (draw), or
+          \texttt{None} (ongoing).
+    \item \texttt{move\_count} --- total moves made.
+\end{itemize}
+
+\textbf{Concrete helpers (available to all subclasses):}
+\begin{itemize}
+    \item \texttt{switch\_turn()} --- flips \texttt{current\_player} between 1
+          and 2.
+    \item \texttt{is\_game\_over()} --- returns \texttt{True} if
+          \texttt{winner} is not \texttt{None}.
+    \item \texttt{current\_player\_name()} --- returns the active player's
+          username.
+    \item \texttt{get\_result\_string()} --- human-readable result for the
+          post-game screen.
+    \item \texttt{draw\_top\_bar(surf)} --- renders the shared top UI bar.
+    \item \texttt{get\_font(size, bold)} --- returns a \texttt{SysFont}.
+\end{itemize}
+
+\textbf{Methods subclasses must override:}
+
+\begin{center}
+\begin{tabular}{lp{9cm}}
+\toprule
+\textbf{Method} & \textbf{Purpose} \\
+\midrule
+\texttt{reset()} & Initialise board to starting state, reset all state. \\
+\texttt{check\_winner()} & Return 1, 2, 0, or None using NumPy operations. \\
+\texttt{draw\_board(surf)} & Render full frame onto \texttt{surf}; must call
+\texttt{draw\_top\_bar()}. \\
+\texttt{handle\_click(pos)} & Convert pixel click \texttt{(x,y)} to a game
+move. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+% ===================================================================
+\section{Games}
+% ===================================================================
+
+\subsection{Tic-Tac-Toe (\texttt{games/tictactoe.py})}
+
+\begin{itemize}
+    \item \textbf{Board}: 10$\times$10 NumPy integer array. Values: 0 = empty,
+          1 = Player 1 (X), 2 = Player 2 (O).
+    \item \textbf{Win condition}: 5 marks in a row --- horizontal, vertical,
+          or diagonal.
+    \item \textbf{Cell size}: \texttt{best\_cell\_size(10) = 660 // 10 = 66 px}.
+\end{itemize}
+
+
+\subsection{Connect Four (\texttt{games/connect4.py})}
+
+\begin{itemize}
+    \item \textbf{Board}: 7$\times$7 NumPy array. Values: 0 = empty, 1 = P1,
+          2 = P2.
+    \item \textbf{Win condition}: 4 coins in a row.
+    \item \textbf{Gravity}: \texttt{np.where(board[:, col] == 0)[0][-1]} finds
+          the lowest empty row --- no Python loop.
+    \item \textbf{Cell size}: \texttt{best\_cell\_size(7) = 660 // 7 = 94 px}.
+    \item \textbf{Coins colours}: one fixed colour per player
+          (red for P1, blue for P2); no cycling.
+    \item \textbf{Drop preview}: a fully opaque ghost coin is rendered in the
+          gap between the top bar and the board, clamped so it is always fully
+          visible.
+\end{itemize}
+
+\subsubsection*{Win Detection}
+
+Uses the same sliding-consec approach as Tic-Tac-Toe but with
+\texttt{WIN\_LEN = 4}. All four directions checked with
+\texttt{broadcasting} and \texttt{np.argwhere}.
+
+\subsection{Othello (\texttt{games/othello.py})}
+
+\begin{itemize}
+    \item \textbf{Board}: 8$\times$8 NumPy array. Values: 0 = empty,
+          1 = Black (P1), 2 = White (P2).
+    \item \textbf{Starting position}: two Black and two White discs in the
+          centre four cells.
+    \item \textbf{Cell size}: \texttt{best\_cell\_size(8) = 660 // 8 = 82 px}.
+    \item \textbf{Board appearance}: classic green felt background with corner
+          star-point dots.
+\end{itemize}
+
+
+\subsubsection*{Turn Skipping}
+
+After each move, if the next player has no valid moves their turn is skipped
+back. If neither player can move, \texttt{check\_winner()} counts discs with
+\texttt{np.sum(board == player)} and declares the result.
+
+\subsubsection*{UI Features}
+
+\begin{itemize}
+    \item \textbf{Valid move hints}: small dots on all legal cells so players
+          always know where they can place.
+    \item \textbf{Ghost disc}: semi-transparent disc previews placement on
+          hover.
+    \item \textbf{Flip ring}: gold ring drawn around discs flipped on the last
+          move.
+    \item \textbf{Disc count bar}: proportional fill bar below the board
+          showing each player's current count.
+\end{itemize}
+
+% ===================================================================
+\section{Authentication System (\texttt{main.sh})}
+% ===================================================================
+
+\begin{itemize}
+    \item Uses \texttt{declare} (not \texttt{eval}) for safe variable
+          assignment --- prevents code injection from special characters in
+          usernames.
+    \item Passwords are hashed with:
+\begin{lstlisting}[style=bashstyle]
+hashed=$(echo -n "$password" | sha256sum | cut -d' ' -f1)
+\end{lstlisting}
+    \item \texttt{grep -F} with a literal tab separator prevents regex
+          false-matches on special-character usernames.
+    \item Password confirmation on registration uses its own inner
+          \texttt{while true} loop, so a mismatch re-prompts for the password
+          rather than looping back to the username prompt.
+    \item \texttt{touch "\$USERS\_FILE"} at startup creates the file if it
+          does not exist, preventing \texttt{grep} errors on first run.
+\end{itemize}
+
+% ===================================================================
+\section{Leaderboard (\texttt{leaderboard.sh})}
+% ===================================================================
+
+\texttt{leaderboard.sh} is called by \texttt{game.py} after each game, with
+the sort metric chosen by the players as an argument
+(\texttt{wins}, \texttt{losses}, or \texttt{ratio}).
+
+\begin{itemize}
+    \item Reads \texttt{history.csv}, groups results by game name.
+    \item For each game, uses \texttt{awk} to accumulate wins and losses per
+          player, computes win/loss ratio, and sorts the output using the
+          passed metric.
+    \item Prints a formatted bordered table to the terminal with columns:
+          Rank, Player, Wins, Losses, W/L Ratio.
+    \item Handles missing or empty history gracefully with a friendly message.
+\end{itemize}
+
+
+
+% ===================================================================
+\section{Modules Used}
+% ===================================================================
+
+\subsection{pygame-ce}
+Pygame Community Edition~\cite{pygame} is used for all graphical rendering
+across the game hub: the menu screen, all three game boards, the top UI bar,
+and the post-game screens. It handles the event loop, keyboard and mouse
+input, and font rendering.
+
+\subsection{NumPy}
+NumPy~\cite{numpy} is used for all game board representations and win
+detection. All boards are stored as NumPy integer arrays.
+Win conditions are checked using vectorized operations
+(\texttt{np.cumsum}, \texttt{np.where}, \texttt{np.maximum.accumulate},
+\texttt{np.diagonal}, \texttt{np.fliplr}) --- no Python loops over cells.
+
+\subsection{Matplotlib}
+Matplotlib~\cite{matplotlib} is listed as an allowed module. It is available
+for post-game analytics visualisation (e.g.\ bar chart of top players, pie
+chart of most-played games from \texttt{history.csv}).
+
+\subsection{pathlib, sys, os}
+Standard library modules used for path manipulation, argument parsing, and
+cross-platform file handling.
+
+\subsection{subprocess}
+Used in \texttt{game.py} to call \texttt{leaderboard.sh} with
+\texttt{subprocess.run(["bash", LEADERBOARD\_SH, sort\_by])}.
+
+\subsection{csv, datetime}
+Standard library modules used in \texttt{game.py} for writing rows to
+\texttt{history.csv} after each game.
+
+% ===================================================================
+\section{Directory Structure}
+% ===================================================================
+
+\begin{lstlisting}[style=bashstyle]
+hub/
+|---- main.sh               # Entry point: authentication + launch
+|---- game.py               # Game engine: menu, loop, history, leaderboard
+|---- leaderboard.sh        # Terminal leaderboard (Bash + awk)
+|---- users.tsv             # Username <TAB> SHA-256 hash
+|---- history.csv           # Winner, Loser, Date, Game
+|---- games/
+|    |---- tictactoe.py     # TicTacToe (10x10, 5 in a row)
+|    |---- othello.py       # Othello (8x8, flip discs)
+|    `---- connect4.py      # ConnectFour (7x7, drop coins)
+\end{lstlisting}
+
+% ===================================================================
+\section{Basic and Advanced Features}
+% ===================================================================
+
+\subsection{Basic Features}
+
+\subsubsection*{Two-Player Authentication}
+SHA-256 hashed passwords, registration and login flow, duplicate username
+prevention, and persistent storage in \texttt{users.tsv}. Implemented
+entirely in Bash.
+
+\subsubsection*{Interactive Game Menu}
+Pygame-rendered menu with plain text game rows. Single click launches the
+selected game. Shows both player names in their respective colours.
+
+\subsubsection*{Three Playable Games}
+All three games are rendered with Pygame GUI windows. No terminal-based
+gameplay. All boards are NumPy arrays. All win conditions use NumPy
+vectorized operations.
+
+\subsubsection*{Game History Recording}
+After each game, \texttt{game.py} appends a row to \texttt{history.csv}
+containing Winner, Loser, Date, and Game name. The file is created with a
+header row on first use.
+
+\subsubsection*{Terminal Leaderboard}
+After each game, the leaderboard is printed to the terminal sorted by the
+metric the players chose. Implemented in Bash with \texttt{awk} for per-game
+per-player statistics.
+
+\subsection{Advanced Features}
+
+\subsubsection*{Shared Base Class}
+\texttt{BoardGame} in \texttt{games/base\_game.py} provides shared constants,
+layout helpers, and the \texttt{draw\_top\_bar()} method. All three game
+classes inherit from it, keeping game-specific code focused and minimal.
+
+\subsubsection*{Fully Vectorized Win Detection}
+Tic-Tac-Toe and Connect Four win detection use zero Python loops for checking.
+
+\subsubsection*{Drop Preview (Connect Four)}
+A ghost coin is rendered in the gap between the top bar and board, clamped to
+always be fully visible. The column hover highlight is clipped to the board
+area.
+
+\subsubsection*{Valid Move Hints and Ghost Disc (Othello)}
+All legal placements are shown as dots. A semi-transparent ghost disc
+previews placement on hover. Flipped discs receive a gold highlight ring.
+
+\subsubsection*{Post-Game Sort Picker}
+The post-game screen is two-phased: first the players pick the leaderboard
+sort metric (which triggers CSV write and leaderboard output), then they
+choose to play again or quit.
+
+% ===================================================================
+\section{Hurdles Faced}
+% ===================================================================
+
+\begin{itemize}
+    \item \textbf{Vectorizing win detection without sliding window view}:
+          The standard approach for detecting runs in a board uses
+          \texttt{np.lib.stride\_tricks.sliding\_window\_view}, which was
+          not permitted. The solution was the cumsum reset trick, which
+          detects consecutive runs across entire rows/columns simultaneously
+          using only \texttt{np.cumsum}, \texttt{np.where}, and
+          \texttt{np.maximum.accumulate}.
+
+    \item \textbf{Diagonal win detection without loops}:
+          Diagonals have varying lengths and cannot be stacked directly.
+
+    \item \textbf{Connect Four drop preview being hidden}:
+          The ghost coin was being rendered before \texttt{draw\_top\_bar()},
+          which painted over it. Fixed by moving the preview draw call to
+          after the top bar, and clamping the coin's \texttt{y} coordinate
+          to the gap between the bar and board.
+
+    \item \textbf{Avoiding circular imports}:
+          Game files need shared constants and the base class, but
+          \texttt{game.py} dynamically imports game files. Placing
+          \texttt{BoardGame} in \texttt{game.py} would create a circular
+          import. The solution is \texttt{games/base\_game.py}: a pure data
+          and class file that imports nothing from the rest of the hub.
+
+    \item \textbf{Othello turn-skip logic}:
+          After placing, if the next player has no valid moves, the turn must
+          skip back. If neither can move, the game ends. This required careful
+          ordering: switch turn $\to$ check valid moves $\to$ possibly switch
+          back $\to$ check valid moves again $\to$ end game.
+\end{itemize}
+
+% ===================================================================
+\section{What I Would Do Differently With 10 More Hours}
+% ===================================================================
+
+\begin{itemize}
+    \item \textbf{Fullscreen support}: Pygame's
+          \texttt{pygame.display.toggle\_fullscreen()} is trivial to add, but
+          it only scales the window without scaling the board. A proper
+          implementation would require making all layout constants dynamic
+          (computed from live screen size at runtime) rather than module-level
+          constants. With more time, this refactor would be worthwhile.
+
+    \item \textbf{Matplotlib analytics}: The project specification requires
+          a bar chart of top 5 players and a pie chart of most-played games.
+          These are straightforward with \texttt{history.csv} and Matplotlib
+          but were not implemented due to time constraints.
+
+    \item \textbf{Animated coin drop in Connect Four}: Rather than the coin
+          instantly appearing in its final row, a smooth fall animation along
+          the column would improve the game feel.
+
+
+    \item \textbf{Sound effects}: Short Pygame mixer sounds for placing marks,
+          flipping discs, and winning would add polish.
+
+    \item \textbf{Coin flip animation in Othello}: Smoothly transitioning disc
+          colour when flipped (via a squash/stretch animation) would make the
+          game more engaging.
+\end{itemize}
+
+% ===================================================================
+\section{References}
+
+\begin{enumerate}
+    \item Python Standard Library Docs: \\
+    \texttt{https://docs.python.org/3/library}
+
+    \item Matplotlib Documentation: \\
+    \texttt{https://matplotlib.org/}
+
+
+    \item Matplotlib Tick Locators: \\
+    \texttt{https://matplotlib.org/stable/gallery/ticks/tick-locators.html}
+
+    \item Matplotlib Tick Formatters: \\
+    \texttt{https://matplotlib.org/stable/gallery/ticks/tick-formatters.html}
+\end{enumerate}
+
+\end{document}
