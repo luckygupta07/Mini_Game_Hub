@@ -4,7 +4,11 @@ import csv
 import subprocess
 import pygame
 import numpy as np
+
 from datetime import date
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
 
 
 GAME_MODULES = {
@@ -43,6 +47,89 @@ def record_result(winner_name: str, loser_name: str, game_name: str):
 def show_leaderboard(sort_by):
     #sort_by can be 'wins', 'losses', or 'ratio'.
     subprocess.run(["bash", LEADERBOARD_SH, sort_by])
+
+
+#----------------------------------------------------------------------------
+#showing statitics
+#----------------------------------------------------------------------------
+def show_statitics(screen:pygame.Surface):
+    top_5_users=[]
+    users_wins=[]
+    users_loses=[]
+    with open('count_of_games.csv','r') as f:
+        for i in range(0,5):
+            k=f.readline().strip("\n").split(",")
+            top_5_users.append(k[0])
+            users_wins.append(int(k[1]))
+            users_loses.append(int(k[5]))
+    x=np.arange(len(top_5_users))
+    #-------creating a required layout--------------------
+    fig=plt.figure(figsize=(W/100,H/100),dpi=100)
+    gs=fig.add_gridspec(2,2,height_ratios=[1,1])
+
+    bar=fig.add_subplot(gs[0,:])
+    pie1=fig.add_subplot(gs[1,0])
+    pie2=fig.add_subplot(gs[1,1])
+    
+    #---------drawing bar graph----------------------------
+    
+    b1=bar.bar(x,users_wins,0.3,label="Total no of wins",color="blue")
+    bar.bar_label(b1,users_wins,padding=0.10)
+    b2=bar.bar(x + 0.3,users_loses,0.3,label="Total no of loses",color="red")
+    bar.bar_label(b2,users_loses,padding=0.10)
+    bar.set_xticks(x+0.15,top_5_users)
+    bar.set_xlabel("Top 5 players")
+    bar.set_ylabel("Frequency")
+    bar.set_title("total no of games won by top 5 players")
+    bar.legend()
+
+    
+    #---------drawing piecharts-----------------------------
+    
+    #Piechart 1 -----------------------------
+    labels=['connect4','othello','tictactoe']
+    with open('games_frequency.csv','r') as f:
+        frequency=f.readline().strip("\n").split(",")
+    pie1.pie(frequency,labels=None,autopct='%1.1f%%',startangle=30)
+    pie1.legend(labels=labels)
+    pie1.set_title("GAME POPULARITY")
+    pie1.set_frame_on(True)
+
+    #Piechart 2-----------------------------
+    with open('count_of_games.csv','r') as f:
+        wins=f.readline().strip("\n").split(",")[2:5]
+    pie2.pie(wins,labels=None,autopct='%1.1f%%',startangle=30)
+    pie2.legend(labels=labels)
+    pie2.set_title("wins contribution for top player")
+    pie2.set_frame_on(True)
+
+    plt.tight_layout()
+    
+    plt.savefig('images/statistics.png', dpi=100, pad_inches=0)
+    plt.close()
+
+
+    text=pygame.font.Font(None,40)
+    text_s=text.render("Press 'SPACE' to CONTINUE",1,"black")
+    text_r=text_s.get_rect()
+    text_r.midbottom=(W/2,H)
+
+
+    a=True
+    while a:
+        image_s=pygame.image.load("images/statistics.png")
+        image_s = pygame.transform.scale(image_s, (W, H))
+        screen.blit(image_s,(0,0))
+        screen.blit(text_s,text_r)
+        pygame.display.update()
+        for e in pygame.event.get():
+            if(e.type==pygame.QUIT):
+                pygame.quit()
+                sys.exit()
+            if(e.type == pygame.KEYDOWN):
+                if(e.key == pygame.K_SPACE):
+                    a=False
+    os.remove('count_of_games.csv')
 
 
 # ---------------------------------------------------------------------------
@@ -299,7 +386,7 @@ class Postgame:
             print("\nGame ended in a draw — no result recorded.\n")
 
         show_leaderboard(self.SORT_OPTIONS[idx])
-        self.phase = "again"
+        self.phase = "statistics"
 
     def handle_again(self, mx, my):
         if self.play_again_rect().collidepoint(mx, my):
@@ -338,6 +425,9 @@ class Postgame:
 
         if self.phase == "sort":
             self.draw_sort_phase(surf, rect_y)
+        elif self.phase == "statistics":
+            show_statitics(self.screen)
+            self.phase="again"
         else :
             self.draw_again_phase(surf, rect_y)
 
