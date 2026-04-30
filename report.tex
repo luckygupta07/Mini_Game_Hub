@@ -1,4 +1,4 @@
-\documentclass[12pt,a4paper]{article}
+\documentclass[12pt, letterpaper]{article}
 
 % -----------------------------------------------------------------------
 % Packages
@@ -25,7 +25,7 @@
 % -----------------------------------------------------------------------
 \hypersetup{
     colorlinks=true,
-    linkcolor=black,
+    linkcolor=blue,
     urlcolor=blue,
     citecolor=black
 }
@@ -103,7 +103,7 @@
 % ===================================================================
 
 Mini Game Hub is a Two-player game hub built as part of the CS108 course
-(Spring semester 2026). It integrates Bash scripting for user authentication and
+(Spring semester 2026). It integrates Bash~\cite{bash_doc} for user authentication and
 Python (Pygame) for graphical gameplay, enabling two authenticated players to
 select a game from an interactive menu, play via a Pygame GUI window, and have
 their results recorded on a persistent leaderboard.
@@ -132,10 +132,19 @@ It supports the following features:
 
 \begin{itemize}
     \item Ensure Python 3.10+ and \texttt{pip} are installed.
-    \item Install the required Python libraries:
+    \item Clone the project repository on your local device or download the zip file.
+    \item Install the required dependencies:
 \begin{lstlisting}[style=bashstyle]
-pip install pygame-ce numpy matplotlib
+pip install -r requirements.txt
 \end{lstlisting}
+    \item \textbf{Optional:} Setup a virtual environment for installing dependencies as follows:
+    \begin{lstlisting}[style=bashstyle]
+        python3 -m venv .venv
+    \end{lstlisting}
+    Activate the virtual environment in the terminal by:
+    \begin{lstlisting}[style=bashstyle]
+        source .venv/bin/activate
+    \end{lstlisting}
     \item Navigate to the project root directory and run:
 \begin{lstlisting}[style=bashstyle]
 bash main.sh
@@ -289,6 +298,10 @@ move. \\
     \item \textbf{Cell size}: \texttt{best\_cell\_size(10) = 660 // 10 = 66 px}.
 \end{itemize}
 
+\subsection*{Winning Logic}
+
+After every move check_win() checks if there are 5 markers of same player and if there are then game will over then sets self.winner = self.current_player.
+
 
 \subsection{Connect Four (\texttt{games/connect4.py})}
 
@@ -312,7 +325,7 @@ Uses the same sliding-consec approach as Tic-Tac-Toe but with
 \texttt{WIN\_LEN = 4}. All four directions checked with
 \texttt{broadcasting} and \texttt{np.argwhere}.
 
-\subsection{Othello (\texttt{games/othello.py})}
+\subsection{Othello Reversi (\texttt{games/othello.py})}
 
 \begin{itemize}
     \item \textbf{Board}: 8$\times$8 NumPy array. Values: 0 = empty,
@@ -320,8 +333,7 @@ Uses the same sliding-consec approach as Tic-Tac-Toe but with
     \item \textbf{Starting position}: two Black and two White discs in the
           centre four cells.
     \item \textbf{Cell size}: \texttt{best\_cell\_size(8) = 660 // 8 = 82 px}.
-    \item \textbf{Board appearance}: classic green felt background with corner
-          star-point dots.
+    \item \textbf{Board appearance}: classic green felt background with white and black coins.
 \end{itemize}
 
 
@@ -331,16 +343,17 @@ After each move, if the next player has no valid moves their turn is skipped
 back. If neither player can move, \texttt{check\_winner()} counts discs with
 \texttt{np.sum(board == player)} and declares the result.
 
+\subsection*{Winning Logic}
+
+After every move "updatescore()" updates the score array which stores total no of empty boxes,White boxes,Black boxes. So when there is no move for both players we compare the scores and whoever has highest score is winner.
+
 \subsubsection*{UI Features}
 
 \begin{itemize}
-    \item \textbf{Valid move hints}: small dots on all legal cells so players
+    \item \textbf{Valid move hints}: Thin circles of respective player clour on all legal cells so players
           always know where they can place.
-    \item \textbf{Ghost disc}: semi-transparent disc previews placement on
-          hover.
-    \item \textbf{Flip ring}: gold ring drawn around discs flipped on the last
-          move.
-    \item \textbf{Disc count bar}: proportional fill bar below the board
+    
+    \item \textbf{Disc count bar}: proportional fill bar above the board
           showing each player's current count.
 \end{itemize}
 
@@ -349,20 +362,16 @@ back. If neither player can move, \texttt{check\_winner()} counts discs with
 % ===================================================================
 
 \begin{itemize}
-    \item Uses \texttt{declare} (not \texttt{eval}) for safe variable
+    \item Uses \texttt{declare} for safe variable
           assignment --- prevents code injection from special characters in
           usernames.
     \item Passwords are hashed with:
 \begin{lstlisting}[style=bashstyle]
 hashed=$(echo -n "$password" | sha256sum | cut -d' ' -f1)
 \end{lstlisting}
-    \item \texttt{grep -F} with a literal tab separator prevents regex
-          false-matches on special-character usernames.
     \item Password confirmation on registration uses its own inner
           \texttt{while true} loop, so a mismatch re-prompts for the password
           rather than looping back to the username prompt.
-    \item \texttt{touch "\$USERS\_FILE"} at startup creates the file if it
-          does not exist, preventing \texttt{grep} errors on first run.
 \end{itemize}
 
 % ===================================================================
@@ -375,12 +384,13 @@ the sort metric chosen by the players as an argument
 
 \begin{itemize}
     \item Reads \texttt{history.csv}, groups results by game name.
-    \item For each game, uses \texttt{awk} to accumulate wins and losses per
-          player, computes win/loss ratio, and sorts the output using the
+    \item For each game, uses \texttt{bash} to accumulate wins and losses per
+          player, computes win/loss ratio, and uses \textit{awk} to sort the output using the
           passed metric.
-    \item Prints a formatted bordered table to the terminal with columns:
-          Rank, Player, Wins, Losses, W/L Ratio.
-    \item Handles missing or empty history gracefully with a friendly message.
+    \item Prints a formatted bordered table with choosen sorted options to the terminal with columns:
+           Player, Wins, Losses, W/L Ratio.
+    \item It creates a file "count\_of\_games.csv" which stores every users totalwins,wins in respective games,totalloses,loses in respective games.This file is used for statistics.
+   
 \end{itemize}
 
 
@@ -396,20 +406,24 @@ and the post-game screens. It handles the event loop, keyboard and mouse
 input, and font rendering.
 
 \subsection{NumPy}
-NumPy~\cite{numpy} is used for all game board representations and win
+NumPy~\cite{numpy}is used for all game board representations and win
 detection. All boards are stored as NumPy integer arrays.
 Win conditions are checked using vectorized operations
-(\texttt{np.cumsum}, \texttt{np.where}, \texttt{np.maximum.accumulate},
+(, \texttt{np.where},
 \texttt{np.diagonal}, \texttt{np.fliplr}) --- no Python loops over cells.
 
 \subsection{Matplotlib}
-Matplotlib~\cite{matplotlib} is listed as an allowed module. It is available
+Matplotlib~\cite{matplotlib}, ~\cite{matplotlib_formatters} is listed as an allowed module. It is available
 for post-game analytics visualisation (e.g.\ bar chart of top players, pie
 chart of most-played games from \texttt{history.csv}).
 
-\subsection{pathlib, sys, os}
-Standard library modules used for path manipulation, argument parsing, and
-cross-platform file handling.
+\subsection{pathlib}
+Standard library module used for path manipulation and
+cross-platform(circular immport issue) file handling.
+
+\subsection{sys, os}
+We used os for removing temporary files.
+We used sys.exit() at many places to quit the game.
 
 \subsection{subprocess}
 Used in \texttt{game.py} to call \texttt{leaderboard.sh} with
@@ -417,7 +431,7 @@ Used in \texttt{game.py} to call \texttt{leaderboard.sh} with
 
 \subsection{csv, datetime}
 Standard library modules used in \texttt{game.py} for writing rows to
-\texttt{history.csv} after each game.
+\texttt{history.csv} after each game. Datetime library to store date in history.csv
 
 % ===================================================================
 \section{Directory Structure}
@@ -433,7 +447,11 @@ hub/
 |---- games/
 |    |---- tictactoe.py     # TicTacToe (10x10, 5 in a row)
 |    |---- othello.py       # Othello (8x8, flip discs)
-|    `---- connect4.py      # ConnectFour (7x7, drop coins)
+|    |`---- connect4.py     # ConnectFour (7x7, drop coins)
+|---- images/...            #contains required image
+|---- games_frequency.csv   #contains Frequency of eachgame played
+
+
 \end{lstlisting}
 
 % ===================================================================
@@ -448,7 +466,7 @@ prevention, and persistent storage in \texttt{users.tsv}. Implemented
 entirely in Bash.
 
 \subsubsection*{Interactive Game Menu}
-Pygame-rendered menu with plain text game rows. Single click launches the
+Pygame-rendered menu with reaspective image and text game rows. Single click launches the
 selected game. Shows both player names in their respective colours.
 
 \subsubsection*{Three Playable Games}
@@ -463,32 +481,30 @@ header row on first use.
 
 \subsubsection*{Terminal Leaderboard}
 After each game, the leaderboard is printed to the terminal sorted by the
-metric the players chose. Implemented in Bash with \texttt{awk} for per-game
+metric the players chose. Implemented in Bash with help of \texttt{awk} for per-game
 per-player statistics.
 
 \subsection{Advanced Features}
 
 \subsubsection*{Shared Base Class}
-\texttt{BoardGame} in \texttt{games/base\_game.py} provides shared constants,
-layout helpers, and the \texttt{draw\_top\_bar()} method. All three game
+\texttt{BoardGame} in \texttt{game.py} provides shared constants,
+layout helpers, and the \texttt{switch\_turn()} method. All three game
 classes inherit from it, keeping game-specific code focused and minimal.
 
 \subsubsection*{Fully Vectorized Win Detection}
 Tic-Tac-Toe and Connect Four win detection use zero Python loops for checking.
 
 \subsubsection*{Drop Preview (Connect Four)}
-A ghost coin is rendered in the gap between the top bar and board, clamped to
-always be fully visible. The column hover highlight is clipped to the board
-area.
+A floating coin is shown in the gap between the top bar and board. The column hover highlight is clipped to the board
+area is column is not full.
 
-\subsubsection*{Valid Move Hints and Ghost Disc (Othello)}
-All legal placements are shown as dots. A semi-transparent ghost disc
-previews placement on hover. Flipped discs receive a gold highlight ring.
+\subsubsection*{Valid Move Hints  (Othello)}
+All legal placements are shown as thin circles and higlighting the box with gold
+colour boundary if the box is valid move
 
 \subsubsection*{Post-Game Sort Picker}
-The post-game screen is two-phased: first the players pick the leaderboard
-sort metric (which triggers CSV write and leaderboard output), then they
-choose to play again or quit.
+The post-game screen is three-phased: first the players pick the leaderboard then
+sort metric (which triggers CSV write and leaderboard output), then we will show stastics graphs,then asks for playagain or quit.
 
 % ===================================================================
 \section{Hurdles Faced}
@@ -496,12 +512,7 @@ choose to play again or quit.
 
 \begin{itemize}
     \item \textbf{Vectorizing win detection without sliding window view}:
-          The standard approach for detecting runs in a board uses
-          \texttt{np.lib.stride\_tricks.sliding\_window\_view}, which was
-          not permitted. The solution was the cumsum reset trick, which
-          detects consecutive runs across entire rows/columns simultaneously
-          using only \texttt{np.cumsum}, \texttt{np.where}, and
-          \texttt{np.maximum.accumulate}.
+          Method to check win conditions was difficult to find without for loops. We used broadcasing for this purpose instead of builtin numpy funtion like sliding window view.
 
     \item \textbf{Diagonal win detection without loops}:
           Diagonals have varying lengths and cannot be stacked directly.
@@ -516,14 +527,16 @@ choose to play again or quit.
           Game files need shared constants and the base class, but
           \texttt{game.py} dynamically imports game files. Placing
           \texttt{BoardGame} in \texttt{game.py} would create a circular
-          import. The solution is \texttt{games/base\_game.py}: a pure data
-          and class file that imports nothing from the rest of the hub.
+          import. The solution is to use importlib which hepls in dynamic importing of game classes.
 
     \item \textbf{Othello turn-skip logic}:
           After placing, if the next player has no valid moves, the turn must
           skip back. If neither can move, the game ends. This required careful
           ordering: switch turn $\to$ check valid moves $\to$ possibly switch
           back $\to$ check valid moves again $\to$ end game.
+
+    \item \textbf{Othello flipping function}:
+          We faced problem for finding which coins should we flip afer a move .Finding a logic for flipping took so much time.
 \end{itemize}
 
 % ===================================================================
@@ -533,19 +546,15 @@ choose to play again or quit.
 \begin{itemize}
     \item \textbf{Fullscreen support}: Pygame's
           \texttt{pygame.display.toggle\_fullscreen()} is trivial to add, but
-          it only scales the window without scaling the board. A proper
-          implementation would require making all layout constants dynamic
-          (computed from live screen size at runtime) rather than module-level
-          constants. With more time, this refactor would be worthwhile.
+          it only scales the window without scaling the board. 
+
+    \item  \textbf{Design and Images}: We did't focus on designing initially due to which we panicked at time of deadline and we could not use good images for background.
 
     \item \textbf{Matplotlib analytics}: The project specification requires
           a bar chart of top 5 players and a pie chart of most-played games.
-          These are straightforward with \texttt{history.csv} and Matplotlib
-          but were not implemented due to time constraints.
+          These are straightforward with \texttt{history.csv} and Matplotlib But we didn't select better colours and better labels.
 
-    \item \textbf{Animated coin drop in Connect Four}: Rather than the coin
-          instantly appearing in its final row, a smooth fall animation along
-          the column would improve the game feel.
+    
 
 
     \item \textbf{Sound effects}: Short Pygame mixer sounds for placing marks,
@@ -558,20 +567,7 @@ choose to play again or quit.
 
 % ===================================================================
 \section{References}
-
-\begin{enumerate}
-    \item Python Standard Library Docs: \\
-    \texttt{https://docs.python.org/3/library}
-
-    \item Matplotlib Documentation: \\
-    \texttt{https://matplotlib.org/}
-
-
-    \item Matplotlib Tick Locators: \\
-    \texttt{https://matplotlib.org/stable/gallery/ticks/tick-locators.html}
-
-    \item Matplotlib Tick Formatters: \\
-    \texttt{https://matplotlib.org/stable/gallery/ticks/tick-formatters.html}
-\end{enumerate}
+\bibliographystyle{plain}
+\bibliography{references}
 
 \end{document}
